@@ -1,0 +1,207 @@
+\documentclass{article}
+\input{setup.tex}
+
+\renewcommand*\contentsname{Table of Content}
+
+\title{APMA 2550: Numerical Solutions (Approximation) of PDEs I}
+\author{Notes taken by Mattie Ji}
+\date{Updated \today}
+\setlength\parindent{0pt}
+
+\begin{document}
+
+\maketitle
+These are lecture notes from \textbf{APMA 2550: Numerical Solutions (Approximation) of PDEs I} with Professor Mark Ainsworth at Brown University for the Fall 2023 semester. The most up-to-date version of the notes are maintained under my GitHub \href{https://github.com/maroon-scorch}{repository}.\\
+
+These notes are taken by Mattie Ji with gracious help and input from the instructor of this course. If you find any mistakes in these notes, please feel free to direct them via email to me or send a pull request on GitHub.\\
+
+The notes are last updated \today.
+\tableofcontents
+\newpage
+
+\section{Lecture 1}
+
+\subsection{Logistics}
+
+\begin{itemize}
+    \item \textbf{When: } We meet at Barus and Holley $3:00 - 5:20$ pm every Wednesday. We will take a $10$ minute break in the middle of lecture.
+    \item \textbf{Assessment: } The grade of the class is divided into 2 components: Coursework is $80\%$ and the Final Project is $20\%$.
+    
+    Courseworks are homeworks assigned each Wednesday and due the following Wednesday before class. They are not meant to be busy work but as complementary materials for the course that might be challenging. Professor Ainsworth strongly believes in learning by doing assignments.
+
+    We have a final project in this course because this class is to train future researchers. The final project itself will be more of computational nature and may have some applications.
+    
+    \item \textbf{Syllabus and Books: }
+
+    \begin{remark}
+    This is Professor Ainsworth's first time teaching this course. He has taught Part II and III before, but this is his first time teaching Part I. This is because, apparently, this class gets a lot of feedback as being ``boring". Another source of frustation is whenever he has a time-dependnet PDE, he would like his students to know how to solve it, but apparently past iterations of Part I never taught this. 
+    \end{remark}
+
+    The focus of this course is on time-discretization methods, ie. we want to solve time dependent PDEs/ODEs. This is a very classical topic and is so successful that barely anyone does research in this field anymore, but there are some very nice methods for us to know in this class.
+
+    There are no recommended textbooks for this course, but there are some books you may consider:
+    \begin{enumerate}
+        \item J. D. Lambert, \textit{Numerical Methods for Ordinary Differential Systems: The Initial Value Problem}
+        \item Volumes I to III of $\{$Hairer, Noursett, Wanner, Lubich$\}$, all about 500 pages each.
+        \item Lots of other books...
+    \end{enumerate}
+
+    \item \textbf{Programming Languages for this class: }
+    \begin{enumerate}
+        \item What the instructor personally prefers: \texttt{C++}
+        \item What the students can use: \texttt{Julia}, \texttt{Python}, \texttt{Matlab} (it would be alright for the class but instructor does not recommend), \texttt{C++}, \texttt{Fortran}, \texttt{ADA}.
+        \item \texttt{Maple} and \texttt{Mathematica} aren't really recommended since they are algebraic manipulation packages and is not good at memory handling.
+    \end{enumerate}
+
+    \item \textbf{Prerequisites: } 
+    \begin{enumerate}
+        \item Working knowledge of real analysis. We will have theoretical portions in this class.
+     \begin{remark}
+        The \textbf{Sleipner C Oil Platform} was an incident where an oil field blew up (it measured a $5$ on the earthquake Richter scale. What happened was the numerical analysts used a completely incorrect method to do the calculations. A lot of workers involved were sent to jail due to professional negligence. This is why we care about the ``analysis" part of numerical analysis.
+    \end{remark}
+        \item Some familiarity with programming.
+        \item You have seen ODEs and PDEs before.
+    \end{enumerate}
+    But we will cover some relevant contents in these topics when needed.
+\end{itemize}
+
+
+\subsection{Ordinary Differential Equations}
+
+ODEs arise naturally whenever we model any time dependent system.
+
+\begin{example}[Cooling of a Body]
+Suppose we have a cup of tea with temperature $u(t)$ at time $t$. The ambient temperature is $T$ that we assume is lower than $u(t)$. In this case, tea cools because the ambient temperature is lower than $u(t)$.
+\[\includegraphics[width=0.6\textwidth]{Figures/lecture1/lec1-1.png}\]
+Consider the system at time $t$ and time $t + \delta t$. Hear energy is conserved in this system. The heat energy in the cup at time $t$
+ is
+ \[m_T c_T u(t)\]
+ where $m_T$ is the mass of the tea and $c_T$ is the specific heat capacity of the tea. The heat energy at time $t + \delta t$ is
+ \[m_T c_T u(t + \delta t) = m_T c_T u(t) - \{\text{Heat lost to the surroundings}\}\]
+
+\begin{question}
+    How much heat is lost?
+\end{question}
+
+The amount of heat is lost should be dependent on the difference $u(t) - T$, the surface area of the cup, and should be proporitional to $\delta t$ (provided that it is really small so we can do a local linear approximation). There could also be vapor going out with some convection going out, but we will ignore it for now by Ainsworth's Principle of Maximum Laziness.\\
+
+Hence the amount of heat lost could be modeled as
+\[\alpha (u(t) - T) \delta t\]
+where $\alpha > 0$ is some constant that measures the ``physical attributes" of the cup.\\
+
+Hence, the heat energy at time $t + \delta t$ can be given as
+\[m_T c_T u(t + \delta t) = m_T c_T u(t) - \alpha (u(t) - T) \delta t\]
+This equation implies that
+\[\frac{ u(t + \delta t) - u(t)}{\delta t} = - \beta (u(t) + T)\]
+where $\beta = \frac{\alpha}{m_T c_T} > 0$. Taking the limit as $\delta t \to 0$, we have that
+\[u'(t) = - \beta (u(t) - T)\]
+Finally, we add an initial condition specifying that $u(t_0) = u_0$.\\
+
+Solving the ODE using standard techniques of calculus, we obtained that
+\[u(t) = T + (u_0 - T) e^{-\beta t}, t \geq 0\]
+
+Observe that as $t \to \infty$, we have that
+\[u(t) \to T\]
+
+This question is an example of a linear, first order, initial value problem. This is called \textbf{Newton's Law of Cooling}.
+ \end{example}
+
+ \begin{example}
+     What if we replace the cup of tea with the planetary phenonmenon ``black body"?
+     \[\includegraphics[width=0.6\textwidth]{Figures/lecture1/lec1-2.png}\]
+     \textbf{Stefan's Law of Black Body Radiation} says that the heat energy lost should be proportional to $(u(t) - T)^4$ instead of $(u(t) - T)$ and we have
+     \[\alpha_1 (u(t) - T) + \alpha_4 (u(t) - T)^4\]
+     for $\alpha_1, \alpha_4 \geq 0$.\\
+
+     This leads to an initial valued problem:
+     \[u'(t) = - \beta_1 (u(t) - T) - \beta_4 (u(t) - T)^4, u(t_0) = u_0\]
+     The solution of this can be done in analytic form, but it is not as easy as the previous example.
+     \begin{question}
+         How do we proceed from here? It depends on who you ask.
+     \end{question}
+     \begin{itemize}
+         \item \textbf{Dynamical system approach: }In this case, we look for an equilibrium and cosnider the RHS
+         \[f(u) = - \beta_1 (u - T) - \beta_4 (u - T)^4\]
+         An equilibrium (critical point) is here if and only if $f(u) = 0$.
+         
+         For example $u = T$ is an example of a equilibrium. $\beta_1 + \beta_4 (u - T)^3 = 0$ is another solutions, which is true if and only if $u = T - (\frac{\beta_1}{\beta_4})^{1/3} < T$. These are the only two equilibriums of the system. The graph looks somewhat like:
+       \[\includegraphics[width=0.6\textwidth]{Figures/lecture1/lec1-3.png}\]
+        Hence, $u = T$ is a stable equilibrium and $u = T - (\frac{\beta_1}{\beta_4})^{1/3}$ is an unstable equilibrium. We have obtained \textbf{qualitative information} about the system. However, sometimes we need \textbf{quantitative information} about a system, ie. we want a sufficiently accurate approximatin of this solution.
+        
+        The physics is also a little dodgy for $t < T - (\frac{\beta_1}{\beta_4})^{1/3}$ since the model implies temperature would run off the negative infinity here.
+        \item \textbf{Numerical PDE/ODE approach: } This is how we will get quantitative information. Even then, the type of numerics you want to do could depend on what you are trying to do. For example, if your numerical method does not perserve energy, then to physics this is unacceptable. So you might want to sacrifice accuracy to perserve energy. That's why there are a lot of studies around this topic.
+
+        Numerical PDE/ODE isn't just asking a computer to output some answers. There's a methodology in selecting the right tools and tackling the right questions.
+     \end{itemize}
+ \end{example}
+
+Let's do another example
+\begin{example}[Population Growth]
+    Let $N(t)$ be the population at time $t$ and we want to look at how $N(t)$ grows as $t$ changes. The simple method is to model
+    \[N(t + \delta t) = N(t) + \delta t [\alpha_B N(t) -  \alpha_D N(t)]\]
+    where $\alpha_B \geq 0$ indicates the birth rate and $\alpha_D \geq 0$ indicates the death rate. We have again that
+    \[\frac{N(t + \delta t) - N(t)}{\delta t} = (\alpha_B - \alpha_D) N(t)\]
+    When we take the limit, we have that
+    \[N'(t) = (\alpha_B - \alpha_D) N(t), N(0) = N_0\]
+    The behavior as $t \to \infty$ depends on the sign of $\alpha_B - \alpha_D$ as when when solve the equation, we get
+    \[N(t) = N_0 e^{(\alpha_B - \alpha_D) t}\]
+    Notice that
+    \[\lim_{t \to \infty} N(t) = \begin{cases}
+    \infty, \alpha_B > \alpha_D\\
+    0, \alpha_B < \alpha_D\\
+    N_0, \alpha_B = \alpha_D
+    \end{cases}\]
+This behavior does not make sense in real life, and our model does not account for (finite resources, diseases, etc.)\\
+
+Let $\alpha = \alpha_B - \alpha_D$, let's instead model this as the \textbf{logistics equation}
+\[N(t + \delta t) = N(t) + \delta t \alpha N(t) - \delta t \beta N(t)^2 \]
+where $\beta$ accounts for resource management and we make the reasonable assumption that resource management squares as population grows. It also tries to take account of diseases, etc. Hence we have that
+\[N'(t) = \alpha N(t) - \beta N(t)^2\]
+
+This could be solved analytically, but it is somewhat complicated.
+
+Let's pretend again that we are dynamical systems students, then let
+\[f(N) = \alpha N - \beta N^2\]
+Then we have that $f(N) = 0$ if and only if $N = 0$ or $N = \frac{\alpha}{\beta} > 0$, and the graph is
+\[\includegraphics[width=0.6\textwidth]{Figures/lecture1/lec1-4.png}\]
+Hence we expect $N(t)$ to tend towards the equilibrium at $\alpha/\beta$. We call $N_\infty = \frac{\alpha}{\beta}$ as the maximum sustainable population.\\
+
+Let's also look at \textbf{spatial effects}, suppose we have an island $\Omega$ where the population is on the island:
+\[\includegraphics[width=0.6\textwidth]{Figures/lecture1/lec1-5.png}\]
+We want $N(x, t)$ to be the population at $x \in \Omega$ and time $t$. Consider a small subregion $\omega \subset \Omega$, and let's let $N_w(t)$ be the population in $\omega$ at time $t$, note that
+\[N_w(t) = \int_{w} N(x, t) dx\]
+By the principle of conservation of people, we need to take account of the birth and death rate and the immigration rate on the boundary:
+\[N_w(t + \delta t) = N_w(t) + \delta t \int_w dx \left(\alpha N(x, t) - \beta N(x, t)^2 \right) - \{\text{immigration at $\partial \omega$ during $(t, t + \delta t)$}\} \]
+Let's call a small arc of the boundary as $\delta s$, we make the assumption that people go from more dense place to less dense places.\\
+
+Let's define a flux $\sigma(x, t)$ which is proportional to the spatial gradient $-\nabla N(x, t)$ (the minus sign is here since we are going from more dense places to less dense places). So we write our \textbf{constructive equation}
+\[\sigma(x, t) = - \gamma \nabla N, \gamma > 0\]
+
+Hence, the outflow across $\delta s << 1$ should be $\delta s \sigma(x, t) \cdot n$, where $n$ is the unit outward normal vector.
+\[\includegraphics[width=0.6\textwidth]{Figures/lecture1/lec1-6.png}\]
+When we sum over all the boundary segments, the immigration effect is 
+\[\lim_{\delta s \to 0} \delta t \sum \delta s n \cdot \sigma = \delta t \int_{\partial w} n \cdot \sigma ds \]
+Hence, we have that
+\begin{align*}
+    \int_\omega N(x, t + \delta t) dx &= \int_w N(x, t) dx + \delta t \int_w (\alpha N - \beta N^2) dx - \delta t \int_{\partial w} n \cdot \sigma ds\\
+    \iff \int_w \frac{N(x, t + \delta t) - N(x, t)}{\delta t} dx &= \int_w (\alpha N - \beta N^2) dx - \int_w dw \sigma dx \tag*{Divergence Theorem}
+\end{align*}
+If we take the limit as $\delta t \to 0$ and substitute for $\sigma$, we have that
+\[\int_w \frac{\partial N}{\partial t} dx = \int_w (\alpha N - \beta N^2 + \gamma \Delta N) dx\]
+for all subregion $w \subset \Omega$. Let ``$w \to 0$" (let the region go smaller and smaller), that is we will divide both side by area of $w$ - $|w|$, and we take $|w| \to 0$:
+\[\frac{1}{|w|} \int_w \frac{\partial N}{\partial t} dx = \frac{1}{|w|}  \int_w (\alpha N - \beta N^2 + \gamma \Delta N) dx\]
+Assuming $N$ is smooth, taking the limit $|w| \to 0$, we will concentrate at a specific point $x \in w$, gives us
+\[\frac{\partial N}{\partial t} = \alpha N - \beta N^2 + \delta \Delta N \text{ in $\Omega$ for $t > 0$}\]
+This is called \textbf{Fisher's Equation}. Now we need to supplement this with an initial condition
+\[IC: N(x, 0) = N_0(x), x \in \Omega\]
+In other words, we should know how many people is at each stop at the beginning. We also need some boundary conditions. The flux at the boundary should be going inward since no one wants to leave the boundary. We want to specify the normal component of the flux should be equal to $0$ on the boundary, hence
+\[BC: n \cdot \sigma(x, t) = 0, x \in \partial \Omega\]
+Recall that $\frac{\partial N}{\partial n} = n \cdot \nabla N$, hence we have the equivalent condition that
+\[\frac{\partial N}{\partial n}(x, t) = 0, x \in \partial \Omega\]
+This is an example of a \textbf{reaction-diffusion equation}.
+\end{example}
+
+There are no lectures next Wednesday.
+
+
+\end{document}
