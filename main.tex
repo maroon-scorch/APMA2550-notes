@@ -203,5 +203,262 @@ This is an example of a \textbf{reaction-diffusion equation}.
 
 There are no lectures next Wednesday.
 
+\newpage
+
+\section{Lecture 2}
+
+\subsection{More on Fisher's Equation}
+Last time, we derived \textbf{Fisher's Equation}  - $N(x, t)$ is the density of a population at $x \in \Omega$ at time $t \geq 0$, and we derived the PDE
+\[\frac{\partial N}{\partial t} = \epsilon \Delta N + \mu N (1 - \frac{\lambda}{\mu} N) \text{ in $\Omega$, $t > 0$}\]
+subject to the constraint that $N(x, 0) = N_0(x)$ for all $x \in \Omega$, and that
+\[\frac{\partial N}{\partial \eta} = 0 \text{ on $\partial \Omega$, $t > 0$}\]
+where we derive against the normal component $\eta$ (this is to reflect that the population's normal component with respect to the boundary should be 0 - they shouldn't leave the boundary). This is an interesting \textbf{time dependent PDE}.\\
+
+The term $\epsilon \Delta n$ is thought of as a ``mixing term" in space.
+
+\begin{question}
+    How would we solve \textbf{Fisher's equation}? There's no hope of finding an analytic solution to this, so we really want to approximate this using some numerical schemes.
+\end{question}
+
+Consider the special case where $\Omega \subset \Rbb$ (ie. we have a 1D domain), we might as well just assume that $\Omega$ is connected as a single interval which we will rescale to $\Omega = (-\pi, \pi)$. We might want to try attacking this using Fourier analysis. Hence, we seek a solution in the form 
+\[N(x, t) = \sum_{k = 0}^\infty u_k(t) \cos(kx) \quad (\dagger)\]
+We claim this automatically satisfies 
+\[\frac{\partial N}{\partial \eta}|_{x = \pm \pi} = 0\]
+(In this case we are just taking the derivative in the $+x$ or $-x$ direction), so
+\[\frac{\partial}{\partial \eta}|_{x = +\pi} = +\frac{\partial}{\partial x}|_{x = +\pi}\]
+\[\frac{\partial}{\partial \eta}|_{x = -\pi} = -\frac{\partial}{\partial x}|_{x = -\pi}\]
+
+We observe that the Fourier coefficients $\{u_k\}_{k = 0}^\infty$ are time dependent (to be determined).
+\begin{question}
+    How are we gonna find the Fourier coefficients?
+\end{question}
+
+We can try to plug this back (substitute the ``Ansatz") into Fisher's equation and compare the Fourier coefficients on both sides. Let's consider the linear parts (in N):
+\[\frac{\partial N}{\partial t} - \epsilon \Delta N - \mu N\]
+The $m$-th Fourier coefficients of the equation above would be
+\begin{align*}
+    \frac{d u_m}{dt} + \epsilon m^2 u_m - \mu u_m  
+\end{align*}
+If we don't have the non-linear term, this is just an ODE in time we could solve readily, but we have a more complicated non-linear part $- \lambda N(x, t)^2$, with $m$-th Fourier coefficient as
+\begin{align*}
+    \frac{-\lambda}{2\pi} \int_{-\pi}^{\pi} N(x, t)^2 \cos(mx) dx
+\end{align*}
+Let's write this term as a function $F_m$ and is a function of $t, u_0, u_1, ...$. 
+
+\begin{question}
+Putting everything together, on the $m$-th Fourier coefficient, we have that
+\[\frac{d u_m}{dt} = - \epsilon m^2 u_m + \mu u_m - F_m(t, u_0, u_1, u_2, ...)\]
+where $u_m(0)$ is the $m$-th Fourier coefficient of $N_0(x)$. What's the problem?
+\end{question}
+
+Well, we ended up with
+\begin{itemize}
+    \item An infinite system of ODEs, but we could just try to truncate and approximate using a finite number ($p$) of terms, ie.
+    \[N(x, t) \approx \sum_{k = 0}^p u_k(t) \cos(kx)\]
+    In practice, we choose $p \sim 100, 1000, ...$
+    \item We have a large system of ODEs that is 
+    \begin{itemize}
+        \item (a) coupled due to a non-linear term $N^2(x,t)$.
+        \item (b) the system itself is non-linear.
+    \end{itemize}
+    \item Needs to be integrated / solved numerically.
+    \item Is it even obvious that a solution exists for this equation? If it exists, is the solution unique? Numerical analysis algorithms get a lot harder when solutions don't exist or when solutions are not unique.
+\end{itemize}
+
+The last bullet point is what we will investigate first.
+
+\subsection{Existence, Uniqueness, and Well-Posedness of IVP}
+Consider a simple scalar initial valued problem
+\[\frac{du}{dt} = f(t, u), t > t_0\]
+subject to $u(t_0) = u_0$.
+
+\begin{question}
+    Does it always have a solution? Is it unique?
+\end{question}
+
+Without any assumptions on $f$, there's not much we can say.
+\begin{example}[Exists but not unique]
+    Let $f(t, u) = 3 u^{2/3}$ and $t_0 = u_0 = 0$ and let's try to solve
+    \[u' = 3 u^{2/3}, u(0) = 0\]
+    Let $c > 0$ be any constant and define
+    \[u_c(t) = \begin{cases}
+        (t - c)^3, t \geq 0\\
+        0, c > t \geq 0
+    \end{cases}\]
+    It's easy to check that $u_c(t)$ satisfies the ODE. However, the solution here is clearly not unique.
+\end{example}
+
+\begin{example}
+    Let $p = 0$ (number of ODEs) in Fisher's equation and write it as the equation $\frac{du}{dt} = \mu u - \lambda u^2$ is the logistic equation. This is because we can look at 
+    \[\frac{du_0}{dt} = \mu u_0 - \lambda \frac{1}{2\pi} \int_{-\pi}^{\pi} N(x, t)^2 dx = \mu u_0 - \lambda u^2\]
+    Let's might as well get rid of $\mu$ and take $\lambda = 1$, so we have that
+    \[f(t, u) = - u^2, t_0 = u_0 = -1\]
+    This is reminiscent of a simplified Fisher/Logistic Equations. Let's try to solve
+    \[\frac{du}{dt} =  - u^2\]
+    Here we have that
+    \begin{align*}
+        \frac{du}{dt} =  - u^2 &\iff \int -\frac{du}{u^2} = \int dt\\
+        &\iff \frac{1}{u} = t + C
+    \end{align*}
+    So $C = 0$ satisfies, so we have solution $u(t) = \frac{1}{t} + C$. In this case a solution exists, but it is only defined up to $t = 0$, it could never get to positive time!
+\end{example}
+
+\begin{question}
+    What kind of assumption should we place on $f$ to get existence and uniqueness?
+\end{question}
+
+\begin{definition}[Lipschitz Continuous]
+    Let $S \subseteq \Rbb$ and $F: S \to \Rbb$, then $F$ is Lipschitz on $S$ if there exists some constant $L$ such that
+    \[|F(u) - F(v)| \leq L |u - v|, \forall u, v \in S\]
+\end{definition}
+
+\begin{example}
+    Here are some examples
+    \begin{itemize}
+        \item Let $F(x) = 3x^{2/3}$ is not Lipschitz continuous on any interval containing $0$. In this case
+        \[\lim_{x \to 0} \frac{|x^{3/2} - 0|}{|x - 0|} = \infty\]
+        \item Let $F(x) = -x^2$ is not Lipschitz on $\Rbb$ since
+        \[\frac{|u^2 - v^2|}{|u - v|} = |u + v| \text{blows up on $u$ and/or $v \to \pm \infty$} \]
+    \end{itemize}
+\end{example}
+
+\begin{remark}
+   When the instructor was in his undergraduate days, he was in a math society. Once upon a time, they invited Robin Wilson (who is a mathematician and the son of a British politician) to come give a math talk. Robin Wilson really likes collecting mathematical stamps of some sorts. In the talk, Robin Wilson gave a talk about stamps.\\
+
+    One of the professors in the audience asked:
+    \begin{itemize}
+        \item "You have shown us all sorts of mathematical stamps, but do you know any stamps that have nothing to do with mathematics?"
+    \end{itemize}
+   Robin Wilson, being a precise mathematician, thought about this question for a while and answered:
+   \begin{itemize}
+       \item ``No, there are no stamps that have nothing to do with mathematics".
+   \end{itemize}
+\end{remark}
+
+\begin{proposition}
+    Suppose $S$ is closed and bounded and $F: S \to \Rbb$ is continuously differentiable, then $F$ is Lipschitz on $S$.
+\end{proposition}
+
+\begin{proof}
+    We have that
+    \begin{align*}
+        |F(u) - F(v)| &= |\int_{v}^u F'(s) ds|\\
+        &\leq |u - v| \max_{x \in S} |F'(x)|\\
+        &= |u - v| L \tag*{Since $S$ is compact}
+    \end{align*}
+\end{proof}
+
+\begin{theorem}[Picard's Theorem]
+    Let $R = [t_0 - h, t_0 + h] \times [u_0 - k, u_0 + k]$ and suppose $f: R \to \Rbb$ is continuous with 
+    \begin{enumerate}
+        \item $|f(t, u)| \leq M_0$ for $(t, u) \in \Rbb$.
+        \item Lipschitz with respect to the second variable, ie. for a fixed $t$
+        \[|f(t, u) - f(t, v)| \leq M_1 |u - v|\]
+        for $(t, u), (t, v) \in R$.
+    \end{enumerate}
+    If $M_0 h \leq k$ and $M_1 h < 1$ (so $h$ has to be sufficiently small), then the problem 
+    \[\frac{du}{dt} = f(t, u), u(t_0) = u_0\]
+    has a unique solution that is continuously differentiable $\varphi$ defined on $I = (t_0 - h, t_0 + h)$ satisfying
+    \begin{itemize}
+        \item  $\varphi(t_0) = u_0$.
+        \item $\varphi(t) \in [u_0 - k, u_0 + k]$ for all $t \in I$.
+        \item $\frac{d\varphi}{dt} = f(t, \varphi(t))$ for all $t \in I$.
+    \end{itemize}
+\end{theorem}
+
+\begin{remark}
+    The larger the $k$ is, the less you can say about the certainity of $\varphi(t)$. The larger $h$ is, the better we could say about the domain $I$.
+\[\includegraphics[width=0.6\textwidth]{Figures/lecture2/lec2-1.png}\]
+    We would like to have $k$ small and $h$ large.
+\end{remark}
+
+\begin{remark}
+    In this class, ``continuously differentiable" means the function is continuous, is differentiable, and the derivative is continuous.
+\end{remark}
+
+We need a couple of tools before proving Picard's Theorem:
+\begin{enumerate}
+    \item Let $C(I)$ be the space of bounded continuous functions on $I$ equipped with the $\ell^\infty$-norm
+    \[||f|| = \sup_{t \in I} |f(t)|\]
+    It has the following property:
+    \begin{itemize}
+        \item If there's a Cauchy sequenece $\{f_k\} \in C(I)$ such that $||f_k \to f_\ell|| \to 0$ as $k, \ell \to 0$, then there exists a limit $f \in C(I)$ such that
+        \[\lim_{t \to \infty} ||f - f_t|| = 0\]
+        (This is just saying that $\ell^\infty$ is complete). This is not too difficulty to prove, but we will omit it in class.
+    \end{itemize}
+    \item We need the following lemma
+    \begin{lemma}
+        Let $a < b$ and define the subset $E \subset C(I)$ by
+        \[E = \{ f \in C(I) : a \leq f(t) \leq b, t \in I \}\]
+        Suppose we have a sequence of functions $\{f_k\}$ in $E$ that converges to $f$, then $f \in E$.
+    \end{lemma}
+
+    \begin{remark}
+        This just means that $E$ is a closed subspace of $C(I)$. Closed subspace of a complete metric space is a complete metric space.
+    \end{remark}
+
+    \begin{proof}
+        Let $k \in \Nbb$, so $a \leq f_k(t) \leq b$ for all $t \in I$. For any $\epsilon > 0$, there exists $N$ such that
+        \[|| f - f_n || < \epsilon \text{ for all $n > N$}\]
+        \[\iff -\epsilon < f(t) - f_n(t) < \epsilon \text{ for all $n > N$}\]
+        \[\iff a - \epsilon \leq f_n(t) - \epsilon < f(t) < f_n(t) + \epsilon \leq b + \epsilon\]
+        This implies that $a + \epsilon < f(t) < b + \epsilon$ for all $t \in I$. Let $\epsilon \to 0$, we get that $f \in E$.
+    \end{proof}
+\end{enumerate}
+
+\begin{proof}[Proof of Picard's Theorem]
+    We seek a function $\varphi \in C(I)$, $\varphi(t) \in [u_0 - k, u_0 + k]$ for all $t \in I$, and
+    \[\varphi(t) = u_0 + \int_{t_0}^t f(s, \varphi(s)) ds, \forall t \in I\]
+    This is equivalent to saying $\frac{d\varphi}{dt} = f(t, \varphi(t))$ with initial conditions $\varphi(t_0) = u_0$ using the Fundamental Theorem of Calculus. In other words, we want to show $\varphi \in E$ with $a = u_0 - k$ and $b = u_0 + k$.\\
+
+    Now, given an arbitrary function $\zeta \in E$, we define a new function
+    \[\psi(t) = u_0 + \int_{t_0}^t f(s, \zeta(s)) ds, \forall t \in I\quad (\star)\]
+    Observe that $\psi \in C(I)$. Clearly it is continuous, for boundedness, note that $(s, \zeta(s)) \in R$, we have that
+    \[|\psi(t) - u_0| \leq |t - t_0| \sup_{s \in I} |f(s, \zeta(s))| \leq |t - t_0| M_0 \leq h M_0 \leq k\]
+    where the last inequality comes from assumption of the theorem. Hence, $\psi(t) \in [u_0 - k, u_0 + k]$ for all $t \in I$. We conclude that $\psi \in E$.\\
+
+    Consequently, $(\star)$ defines a mapping $T: E \to E$ by the rule $\psi = T(\zeta)$. Let $\zeta_1, \zeta_2 \in E$ and $\psi_1 = T(\zeta_1), \psi_2 = T(\zeta_2)$. Then
+    \begin{align*}
+        |\psi_1(t) - \psi_2(t)| &= |\int_{t_0}^t \{f(s, \zeta_1(s)) - f(s, \zeta_2(s))\} ds|\\
+        &\leq |\int_{t_0}^t M_1 |\zeta_1(s) - \zeta_2(s)| | \tag*{Lipschitz in second variables}\\
+        &\leq M_1 \sup_{s \in I} |\zeta_1(s) - \zeta_2(s)| |t - t_0|\\
+        &= M_1 h ||\zeta_1 - \zeta_2||,\quad \forall t \in I
+    \end{align*}
+    Hence we have that
+    \[||\psi_1 - \psi_2|| \leq M_1 h ||\zeta_1 - \zeta_2|| \quad (*)\]
+    Now since $M_1 h < 1$ by assumption, the rest follows from \textbf{Banach's fixed point theorem}, but not everyone in the class knows this result! So we will proceed....\\
+
+    Define a sequence $\{\varphi_n\}_{n=0}^\infty$ by the rule
+    \[\varphi_0(t) = u_0, t \in I\]
+    \[\varphi_{n+1} = T(\varphi_n), n = 0, 1, ....\]
+    Hence, since $\varphi_0 \in E$ and since $T: E \to E$, we have a whole sequence in $E$. We will check this is a Cauchy sequence, let $m > n$, by Triangle's inequality and ``bootstrapping" this inequality, we have that
+    \begin{align*}
+        ||\varphi_m - \varphi_n|| &\leq ||\varphi_{m} - \varphi_{m-1}|| + ... + ||\varphi_{n+1} - \varphi_n||\\
+        &\leq \sum_{\ell = 0}^\infty ||\varphi_{n + \ell + 1} - \varphi_{n + \ell}|| \\
+        &\leq \sum_{\ell = 0}^\infty (M_1 h)^{n+\ell} ||\varphi_1 - \varphi_0||  \tag*{Using $(*)$}\\
+        &= (M_1 h)^n  ||\varphi_1 - \varphi_0|| \sum_{\ell = 0}^\infty (M_1 h)^{\ell}\\
+        &= (M_1 h)^n ||\varphi - \varphi_0|| \frac{1}{1 - M_1 h}
+    \end{align*}
+    Therefore, $||\varphi_m - \varphi_n|| \to 0$ as $n, m \to \infty$. This is a Cauchy seuqnece in $E$, so our lemma tells us that the limit $\varphi$ of this sequence is in $E$.\\
+
+    Now, $||\varphi - T(\varphi)|| = ||\varphi - \varphi_{n+1} + \varphi_{n+1} - T(\varphi)|| \leq ||\varphi - \varphi_{n+1}|| + ||T(\varphi_n) - T(\varphi)|| \leq ||\varphi - \varphi_{n+1}|| + (M_1 h)||\varphi_n - \varphi||$ which tends to $0$ as $n \to \infty$, hence we verify that $\varphi$ is a fixed point of the integral equation earlier.\\
+
+    For uniqueness, suppose there's another $\Tilde{\varphi} \in E$ such that $\Tilde{\varphi} = T(\Tilde{\varphi})$ but $\Tilde{\varphi} \neq \varphi$, then consider
+    \begin{align*}
+        ||\varphi - \Tilde{\varphi}|| &= ||T(\varphi) - T(\Tilde{\varphi})||\\
+        &\leq M_1 h ||\varphi - \Tilde{\varphi}||\\
+        &< ||\varphi - \Tilde{\varphi}|| \tag*{$M_1 h < 1$}
+    \end{align*}
+    which is a contradiction. Hence we conclude that $\varphi$ is unique.
+\end{proof}
+
+\begin{remark}
+    This is a constructive argument to make $\varphi$. However, it is not so popular because the map $T$ tends to be difficult to compute.
+\end{remark}
+
+% the answer is yes, but you better want to say why
+
+
+
 
 \end{document}
