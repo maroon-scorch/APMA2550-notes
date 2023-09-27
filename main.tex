@@ -456,8 +456,202 @@ We need a couple of tools before proving Picard's Theorem:
     This is a constructive argument to make $\varphi$. However, it is not so popular because the map $T$ tends to be difficult to compute.
 \end{remark}
 
-% the answer is yes, but you better want to say why
+\newpage
+\section{Lecture 3}
 
+\subsection{More on Picard's Theorem}
+Recall - last lecture, we proved Picard's Theorem:
+\begin{theorem}[Picard's Theorem]
+    Let $R = [t_0 - h, t_0 + h] \times [u_0 - k, u_0 + k]$ and suppose $f: R \to \Rbb$ is continuous with 
+    \begin{enumerate}
+        \item $|f(t, u)| \leq M_0$ for $(t, u) \in \Rbb$.
+        \item Lipschitz with respect to the second variable, ie. for a fixed $t$
+        \[|f(t, u) - f(t, v)| \leq M_1 |u - v|\]
+        for $(t, u), (t, v) \in R$.
+    \end{enumerate}
+    If $M_0 h \leq k$ and $M_1 h < 1$ (so $h$ has to be sufficiently small), then the problem 
+    \[\frac{du}{dt} = f(t, u), u(t_0) = u_0\]
+    has a unique solution that is continuously differentiable $\varphi$ defined on $I = (t_0 - h, t_0 + h)$ (note that this is open) satisfying
+    \begin{itemize}
+        \item  $\varphi(t_0) = u_0$.
+        \item $\varphi(t) \in [u_0 - k, u_0 + k]$ for all $t \in I$.
+        \item $\frac{d\varphi}{dt} = f(t, \varphi(t))$ for all $t \in I$.
+    \end{itemize}
+\end{theorem}
+
+What this theorem is really saying is that, given the initial condition $(t_0, u_0)$, there's some rectangle around the initial condition $(t_0, u_0)$: 
+\[\includegraphics[width=0.6\textwidth]{Figures/lecture3/lec3-1}\]
+such that $h$ has to be sufficiently small (recall $M_0 h \leq k$ and $M_1 h \leq k$), $t$ has to be sufficiently large, and thus $u(t)$ exists and is unique.
+
+\begin{example}
+    We will again consider a simple problem where $f(t, u) = -u^2$ and $u_0 = t_0 = 1$. We saw before that a solution exists only for $t > 0$. In other words, the global solution $u(t) = \frac{1}{t}$ is only defined to $t > 0$.\\
+
+    Now, let's pretend the global solution is unknown and use Picard's theorem to give a local solution. Let's choose $r = [1 - h, 1 + h] \times [1 - k, 1 + k]$ where $h$ and $k$ are to be determined. Now, we check that
+    \[|f(t, u)| = |-u^2| \leq (1 + k)^2 = M_0\]
+    Also, we need to look at
+    \[|f(t, u_1) - f(t, u_2)| = |u_1^2 - u_2^2| = |u_1 - u_2| |u_1 + u_2| \leq |u_1 - u_2| (|u_1| + |u_2|) \leq 2(1 + k) |u_1 - u_2|\]
+    Hence we can take $M_1 = 2 (1 + k)$. We require $h$ and $k$ such that
+    \[M_0 h \leq k \text{ and } M_1 h < 1\]
+    This is equivalent to requiring that
+    \[h \leq \frac{k}{(1 + k)^2} \text{ and } h < \frac{1}{2(1 + k)}\]
+    We try to choose $h$ as large as possible to make the domain on which solutions exist as large as possible. This is comparing two curves:
+\[\includegraphics[width=0.4\textwidth]{Figures/lecture3/lec3-2}\]
+    The largest value of $h$ is when the two curves intersect, which is at
+    \[\frac{k}{(1 + k)^2} = \frac{1}{2(1 + k)} \iff k = 1\]
+    Hence, the optimal choice is to take $k = 1$ and $h < 1/4$. Picard's Theorem then tells us that this initial valued problem has a unique solution on $R = [t_0 - h, t_0 + h] \times [u_0 - k, u_0 + k] = [\frac{3}{4}, \frac{5}{4}] \times [0, 2]$. The picture we should keep in mind is
+\[\includegraphics[width=0.4\textwidth]{Figures/lecture3/lec3-3}\]
+\end{example}
+
+\begin{question}
+    Picard's Theorem told us about existence on $(3/4, 5/4)$, but we know that the solution exists on $(0, \infty)$. This result is not optimal. Can we try to extract some more information out of this? How to ``continue" (note that this is a pun)? 
+\end{question}
+
+Why don't we try to look at a point $(t_1, u_1)$ with $t_1 > t_0$, and make a new rectangle. Then we glue the rectangles together if the solutions agree. Then we try to do it for $t_2 > t_1$, etc.
+\[\includegraphics[width=0.8\textwidth]{Figures/lecture3/lec3-4}\]
+Observe that the size of $I$ depends on $h$, which in turn only depends on $M_0$, $M_1$, and $k$, but not on the solution $\phi$ we constructed. This means that we can restart / continue the process of a new point $t_1$ such that $u(t_1) = u)1$, and extend to a new rectangle $R_1$.\\
+
+We also notice that the new function $\varphi_1$ agrees with $\varphi$ on the common domain of definition by uniqueness of the solution. There is however one issue with this ``gluing method":
+\begin{enumerate}
+    \item What if the rectangle keeps shrinking until we eventually can't generate solutions to the entire interval?
+\end{enumerate}
+
+\begin{remark}
+    If there's no limit on how large $h$ can be (ie. in the set up of the homework last week) in the case where we have a globally Lipschitz condition, we could always find the solution for the entire interval of definition.
+\end{remark}
+
+\begin{example}[Example Continued]
+    Let's suppose that we start at a new point $t_0$ and $u_0 = \frac{1}{t_0}$, where $t_0$ could be $3/4$ or $5/4$ (from where we left off). Let $R = [t_0 - h, t_0 + h] \times [u_0 - k, u_0 + k]$ where $h$ and $k$ are to be determined again. Then, we have that
+    \[|f(t, u)| = |u^2| \leq (u_0 + k)^2 = M_0\]
+    \[|f(t, u_1) - f(t, u_2)| \leq |u_1 - u_2| 2(u_0 + k),\quad \text{ hence } M_1 = 2(u_0 + k)\]
+    Now we require that $M_0 h \leq k$ and $M_1 h < 1$, which is equivalent to requiring
+    \[h \leq \frac{k}{(u_0 + k)^2} \text{ and } h < \frac{1}{2(u_0 + k)}\]
+    The optimal choice is when the two curves equal and is when $k = u_0$. Hence $h < \frac{1}{2(u_0 + k)} = \frac{1}{4(u_0)} = \frac{t_0}{4}$. Hence, by Picard's Theorem, the new (extended) interval is 
+    \[(t_0 - h, t_0 + h) = (\frac{3 t_0}{4}, \frac{5 t_0}{4})\]
+    which agrees with what we had when $t_0 = 1$. If we keep repeating this, we will get the interval after $n$ steps as
+    \[(t_0 (\frac{3}{4})^n, t_0 (\frac{5}{4})^n)\]
+    Hence, we get the interval $(0, \infty)$ as we take $n \to \infty$.
+\end{example}
+
+\begin{remark}
+    Picard's theorem extends to systems of first order ODEs for, (ex. in the case of approximating Fisher's equation):
+    \[\frac{d\Vec{u}}{dt} = \Vec{f}(t, \Vec{u}), \Vec{u} = (u_0, u_1, ..., u_{N-1}) \]
+    where $\Vec{f}: \Rbb \times \Rbb^N \to \Rbb^N$ is bounded and continuous on some hyper-rectangle $R \subseteq \Rbb \times \Rbb^N$ and Lipschitz in all $\Vec{u}$-variables. The proof is almost exactly the same.\\
+
+    Picard's theorem also extends to higher order ODEs:
+    \[\frac{d^n u}{dt^n}(t) = f(t, u, \frac{du}{dt}, ..., \frac{d^{N-1} u}{dt^{N-1}}), N > 1\]
+    We can change this into a system of first order ODEs as follows - we introduce new variables:
+    \[u_0 = u, u_1 \coloneqq \frac{du}{dt}, ..., u_{N-1} \coloneqq \frac{d^{N-1}u}{dt^{N-1}} \]
+    Let's set $\Vec{u} = [u_0, u_1, ..., u_{N-1}]$. This then gives us that
+    \[\frac{d\Vec{u}}{dt} = [u_0', u_1', ..., u_{N-1}'] = [u_1, u_2, ..., u_{N-1}, \frac{d^N}{dt^N} u] = [u_1, u_2, ..., u_{N-1}, f]\]
+    which we just talked about before.
+\end{remark}
+
+\subsection{Numerical Quadrature}
+We are interested in IVPs of the form
+\[\frac{du}{dt} = f(t, u)\]
+using an numerical approach. However, even if $f(t, u)$ is independent of $u$, we still have an issue:\\
+
+\begin{question}
+Consider the set up
+\[\frac{du}{dt}(t) = g(t), t > t_0 \text{ subject to } u(t_0) = u_0\]
+
+We know the exact solution should be
+\[u(t) = u_0 + \int_{t_0}^t g(s) ds,\quad t > t_0\]
+However, in general this integral might be very difficult to compute analytically! We need to somehow approximate the integral.
+\end{question}
+
+Consider a new set up as follows - Suppose we solve a function $u(t)$ from $t = t_0$ to $t = T$,
+\[\includegraphics[width=0.5\linewidth]{Figures//lecture3/lec3-5.png}\]
+We start by a uniform discretization of the $t$-variables. We define $t_k = t_0 + k h$ where $h = \frac{T - t_0}{n}$ and $n \in \Nbb$. We then try to compute the coordinates $(t_k, u(t_k))_{k = 0}^n$. We know that
+\[u(t_1) = u_0 + \int_{t_0}^{t_1} g(s) ds\]
+If $h = t_1 - t_0$ is small, then we should be able to approximate the integral ``well". For example, we could use the Trapezoidal rule,
+\[\int_0^{h} g(s) ds \approx \frac{h}{2} \{g(0) + g(h)\}\]
+This leads to a numerical algorithm:
+
+\begin{tcolorbox}[standard jigsaw,opacityback=0]
+\begin{algorithm}[H]
+\caption{Trapezoidal Approximations}
+\KwData{$u_0$ and $g$}
+\KwResult{The tuples approximating $(t_k; u(t_k))_{k = 0}^n$}
+1. Choose $n$ and set $h = \frac{T - t_0}{n}$\;
+2. For $k = 1, 2, ...$, set $u_k = u_{k-1} + \frac{1}{2} h [g(t_{k-1}) + g(t_k)]$
+\end{algorithm}
+\end{tcolorbox}
+
+There are however some issues
+\begin{enumerate}
+    \item How good are the results? We want to estimate $|u(t_k) - u_k|$.
+    \item Does the method converge as $h \to 0$. In other words,
+    \[\max_{0 \leq k \leq n} |u(t_k) - u_k| \to 0 \text{ as } h \to 0\]
+    \item If it does converge, what conditions are on $g$? How fast does this converge? The speed should depend on $g$ and the choice of the quadrature rule.
+\end{enumerate}
+
+\begin{question}
+    What other kinds of quadrature rule are possible?
+\end{question}
+\begin{itemize}
+    \item Trapezoidal rule: $\int_0^h g(s) ds \approx \frac{h}{2} [g(0) + g(h)]$.
+    \item Simpson's rule: $\int_0^h g(s) ds \approx \frac{h}{6} [g(0) + 4 g(\frac{h}{2}) + g(h)]$.
+    \item Gauss-Legendre 2-point rule: $\int_0^h g(s) ds \approx \frac{h}{2}\{g(\xi_+) + g(\xi_-)\}$ where $\xi_\pm = \frac{h}{2}(1 \pm \frac{1}{\sqrt{3}})$.
+    \item The Midpoint Rule (or Gauss-Legendre 1-point rule): $\int_0^h g(s) ds \approx h g(\frac{h}{2})$.
+    \item Left-Hand Endpoint Rule: $\int_0^h g(s) ds \approx h g(0)$.
+    \item ... and may others.
+\end{itemize}
+Any one of these could be used in our algorithm, so how do we know which to choose? There's no clear cut answer because it depends on what we are trying to do. We are interested in the following quantities:
+\begin{itemize}
+    \item Cost (Number of evaluations of $g$)
+    \item Rate of convergence
+    \item Accuracy
+\end{itemize}
+
+In order to answer these questions, we need rigorous error estimates on the quadrature rules. 
+\begin{definition}
+Assuming the function $g \in C[0, h]$ (it is continuous on $[0, h]$), let $I(g)$ be any of the quadrature rules, then the error function is defined as
+\[g(s) \mapsto E(g) \coloneqq \int_0^h g(s) ds - I(g) \]
+This is a linear functional $E$ in $\Hom(C[0, h], \Rbb)$. The point is that $E$ (and also $I$) acts on functions, so to be precise, we can write
+\[E[t \mapsto g(t)] = \int_0^h g(s) ds - I[t \mapsto g(t)]\]
+This will become important later.
+\end{definition}
+
+\begin{remark}
+One time in the coffee room, the instructor was talking about Gaussian quadratures with his advisor. Roy Roberts heard and conversation and asked "What is the Gaussian quadrature"? Then the instructor's advisor explained. Roy Robert then asks - what happens when we have a function that is continuous nowhere? The instructor's advisor thought about it and then said "They don't usually come up in practice".
+\end{remark}
+
+\begin{example}
+    Here are some examples of the error functional.
+    \begin{enumerate}
+        \item If the rule is the Trapezoidal rule, then
+        \[E[t \mapsto g(t)] = \int_0^h g(s) ds - \frac{h}{2} [g(0) + g(h)]\]
+        If $g(t) = 1$ is the constant function, then
+        \[E[t \mapsto 1] = \int_0^h ds - \frac{h}{2}[1 + 1] = 0\]
+        If $g(t) = t$, then
+        \[E[t \mapsto t] = \int_0^h s ds - \frac{h}{2}[0 + h] = 0\]
+        If $g(t) = t^2$, then
+        \[E[t \mapsto t^2] = \int_0^h s^2 ds - \frac{h}{2}[0 + h^2] = -\frac{1}{6} h^3\]
+    Since $E$ is a linear functional, we conclude that
+    \[E[t \to p(t)] = 0 \quad \forall \text{p that is a polynomial of degree at most $1$.}\]
+
+        \item If the rule is the midpoint rule, then
+        \[E[t \mapsto g(t)] = \int_0^h g(s) ds - \frac{h}{2} [g(h/2)]\]
+        We will again have that $E[t \mapsto 1] = 0$ and $E[t \mapsto t] = 0$. Now,
+        \[E[t \mapsto t^2] = \frac{1}{12} h^{3}\]
+        So $E[p] = 0$ for all linear polynomials $p$.
+
+        \item If the rule is the two point Gauss-Legendre rule, then
+        \[E[t \mapsto g(t)] = \int_0^h g(s) ds - \frac{h}{2} \{g(\xi_+) - g(\xi_-)\}\]
+        where $\xi_{\pm} = \frac{h}{2} (1 \pm \frac{1}{\sqrt{3}})$. In this case we still have $E[t \mapsto 1] = 0$ and $E[t \mapsto t] = 0$. Furthermore, $E[t \mapsto t^2] = 0$ and in fact even $E[t \mapsto t^3] = 0$. However, $E[t \mapsto t^4] \neq 0$. In fact, we have that $E[p] \equiv 0$ for all polynomials $p$ with degree less than or equal to $3$. In fact, this the maximal precision, no 2-point rule can eliminate more polynomials than the two point Gauss-Legendre rule.\\
+
+        In general, given $E[t \mapsto g(t)]$, we note that
+        \[E[t \mapsto g(t)] = E[t \mapsto g(t) - p_3(t)], \forall p_3 \in \Pbb_3\]
+        (here $\Pbb_n$ means all polynomials with degree less than or equal to $n$). Hence, if we could find a good approximation of $g(t)$ using cubics, we could get a good error!
+    \end{enumerate}
+\end{example}
+
+\begin{conjecture}
+    If $E[p] \equiv 0$ for all $p \in \Pbb_n$, then for ``reasonable $g$", $E[g]$ should be small and should ``be better" as $n$ increases. 
+\end{conjecture}
+
+This will be formalized and will be known as the \textbf{Peano Kernel Theorem}.
 
 
 
