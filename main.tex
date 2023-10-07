@@ -653,6 +653,296 @@ One time in the coffee room, the instructor was talking about Gaussian quadratur
 
 This will be formalized and will be known as the \textbf{Peano Kernel Theorem}.
 
+\newpage
+\section{Lecture 4}
 
+\subsection{Peano Kernel Theorem}
+
+We are developing and analyzing rates for
+\[\int_0^h g(t) dt \simeq \text{ Linear combination of values of $f$.}\]
+e.g. we have the Trapezoidal Rule, 
+\[\int_0^h g(t) dt \simeq \frac{h}{2} [g(0) + g(h)]\]
+
+\begin{question}
+    How accurate is this rule? How to compute the rules?
+\end{question}
+
+This led us to define the error functional $E: C[0, h] \to \Rbb$ that takes a continuous function on $[0, h]$ by the rule
+\[E(g) = \int_0^h g(t) dt - \frac{h}{2} [g(0) + g(h)]\]
+Strictly speaking, this is being applied to the function $t \mapsto g(t)$, so we should really think of $E(g)$ as $E[t \mapsto g(t)]$.\\
+
+What we found was that for this (and other) rules, we have the property that
+\[E[t \mapsto p(t)] = 0 \quad \forall p \in \Pbb_n\]
+for some $n$. This led us with an idea:
+
+\begin{idea}
+Try to estimate $E(g)$, where $g$ is a smooth function, by writing
+\[E(g) = E(g - p) \quad \forall p \in \Pbb_n\]
+We suspect that this should be ``small", the precise definition of smallness is yet to be defined. If we trake $p(t)$ to be a good approximation of $g(t)$, then $g - p$ should be ``small". Can we make this rigorous?
+\end{idea}
+
+\begin{remark}
+    Being a good researcher at maths isn't being a good person at taking exams. The hardest part of mathematics is what to prove, rather than how to prove it. Sometimes we make the initial thing to prove easier by adding more and more constraints, we want to refine the statement we want to prove from the initial idea. Therefore, the initial intuition is very important, and the rest is trying to make this intuition rigorous.
+\end{remark}
+
+Let's start with Taylor's Theorem. The Maclaurin series tells us that for large $n$
+\[g(t) \approx \sum_{k = 0}^n \frac{t^k}{k!} g^{(k)}(0)\]
+
+We want to bound the error by looking at the reimander term:
+\begin{theorem}[Taylor's Theorem] The remainder term may be expressed as, after successive integration by parts,
+    \[g(t) = \sum_{k = 0}^n \frac{t^k}{k!} g^{(k)}(0) + \frac{1}{n!} \int_0^t (t - s)^m g^{(n+1)}(s) ds, \quad t \in [0, h] \]
+    Let's call $p_n(t) = \sum_{k = 0}^n \frac{t^k}{k!} g^{(k)}(0)$.
+\end{theorem}
+
+Let define the \textbf{truncated power function}) as
+\[(t - s)^n_+ = \begin{cases}
+    (t - s)^n, \text{ if $t \geq s$}\\
+    0, \text{ if $t < s$}
+\end{cases}\]
+
+Then we can write
+\[g(t) = p_n(t) + \frac{1}{n!} \int_0^h (t - s)^m_+ g^{(n+1)}(s) ds\]
+The beauty is now the integral's range is independent of $t$. Let's try to apply the error functional to both side, then
+\begin{align*}
+    E[t \mapsto g(t)] &= E[t \to p_n(t)] + \frac{1}{n!} \int_0^h E[t \mapsto (t - s)^m_+] g^{(n+1)}(s) ds \tag*{Fubini's Theorem}\\
+    &= \frac{1}{n!} \int_0^h E[t \mapsto (t - s)^m_+] g^{(n+1)}(s) ds \tag*{By Hypothesis, $E[t to p_n(t)] = 0$}
+\end{align*}
+
+Let's define $s \mapsto K(s) = E[t \mapsto (t - s)^m_+] \in \Rbb$, which is a real number that has no $t$-variables anymore. We call $K(s)$ the \textbf{kernel function}. This leads to a theorem:
+
+\begin{theorem}[Peano Kernel Theorem]
+    Let $E: C[0, h] \to \Rbb$ be a linear functional which commutes with integrals such that $E(p) \equiv 0$ for all $p \in \Pbb_n$ for some $n \in \Zbb_{\geq 0}$. If $g \in C^{n+1}([0, h])$, then 
+    \[E[t \mapsto g(t)] = \frac{1}{n!} \int_0^h K(s) g^{(n+1)}(s) ds\]
+    where the construction of $K(s) = E[t \mapsto (t - s)^m_+]$ is the kernel. Here, $C^{n+1}$ means $(n+1)$-th times continuously differentiable.
+\end{theorem}
+
+Consequenetly, we get the following error bounds:
+\begin{corollary}
+Let $E: C[0, h] \to \Rbb$ be a linear functional as before and $g \in C^{n+1}([0, h])$, then
+\begin{itemize}
+    \item $|E(g)| \leq \frac{1}{n!} \int_0^h |K(s)| ds \cdot \max_{0 \leq t \leq h} |g^{n+1}(t)|$.
+    \item $|E(g)| \leq \frac{1}{n!} \max_{0 \leq s \leq h} |K(s) \cdot \int_0^h |g^{n+1}(s)| ds$.
+    \item $|E(g)| \leq \frac{1}{n!} \sqrt{\int_0^h K(s)^2 ds} \cdot \sqrt{\int_0^h g^{(n+1)}(s)^2 ds}$.
+    \item Pick any of your favorite Holder's Inequality.
+\end{itemize}
+\end{corollary}
+
+\begin{remark}
+Peano's Kernel Theorem is not usually covered in many numerical analysis, but it is covered in \textit{Interpolations and Approximation} by P. J. Davis, who used to be a Brown professor here. The instructor actually has his office now. The instructor owns the book ever since $1988$ with the author's signature. The instructor lent the book to someone, and now it is lost forever now...
+\end{remark}
+
+\begin{example}
+    Here are some applications of the theorem: For the Trapezoidal rule, we know that $E(p) \equiv 0$ for all $p \in \Pbb_1$, and we show that $E[t \mapsto t^3] = -\frac{1}{6}h^3 \neq 0$, so applying the Peano kernel theorem with $n = 1$, we have that for $s \in [0, h]$,
+       \begin{align*}
+           K(s) &= \frac{1}{1!} E[t \mapsto t(-s)^1_+]\\
+           &= \int_0^h (t - s)_+ dt - \frac{h}{2}[(h - s)_+ - (0 - s)_+]\\
+           &= \int_s^h (t - s) dt - \frac{h}{2}\{(h - s) + 0\} \tag*{$(t - s)_+$ is non-zero only when $t > s$}\\
+           &= \frac{1}{2} (h - s)^2 - \frac{1}{2} h(h-s)\\
+           &= -\frac{1}{2} (h-s)s
+       \end{align*}
+       Observe that $K(s)$ is just a function of $s$, nothing special. We can draw a picture of it:
+       \[\includegraphics[width=0.6\textwidth]{Figures/lecture4/lec4-1.png}\]
+       Boudning the kernel we note that
+       \[\int_0^h |K(s)| ds = \int^h_0 \frac{1}{2} s(h - s) ds = \frac{1}{12} h^3\]
+       Hence we have that
+       \[|\int_0^h g(s) ds - \frac{h}{2} \{g(0) + g(h)\}| \leq \frac{1}{12} h^3 \max_{0 \leq t \leq h} |g''(t)|\]
+\begin{question}
+    Can this be improved? (e.g. smaller constants or bigger powers of $h$).
+\end{question}
+No, we just need to exhibit a function such that they are equal on both sides, this holds as an equality when $g(t) = t^2$.
+\end{example}
+
+We only cared about $K(s)$ for $s \in [0, h]$, but if we try to extend $s$ beyond this range... What would happen? Suppose $s < 0$, then
+    \begin{align*}
+        K(s) &= \int_0^h (t - s)_+ dt - \frac{h}{2} \{(h - s)_+ - (0 - s)_+\}\\
+        &= \int_0^h (t - s) dt - \frac{h}{2} \{(h - s) + (-s)\}\\
+        &= [\frac{1}{2} (t - s)^2]_0^h - \frac{1}{2} h^2 + s\\
+        &= \frac{1}{2} (h - s)^2  - \frac{1}{2} s^2 - \frac{1}{2} h^2 + s\\
+        &= 0 \tag*{As expected}
+    \end{align*}
+In general, we have that
+\begin{proposition}
+    $K(s) = 0$ for all $s < 0$ and $s > h$.
+\end{proposition}
+
+\begin{proof}
+    If $s < 0$ and $t \in [0, h]$, then $(t - s)_+^n = (t - s)^n$, so in this case
+    \[K(s) = E[t \mapsto (t - s)^n] = 0 \text{ as $(t - s)^n \in \Pbb_n$}.\]
+    If $s > h$ and $t \in [0, h]$, then $(t - s)_+^n = 0$, so
+    \[K(s) = E[t \mapsto 0] = 0.\]
+    This concludes the proof.
+\end{proof}
+
+Let's try another example,
+\begin{example}[Left hand endpoint rule]
+    Let's consider
+    \[E(g) = \int_0^h g(t) dt - h g(0)\]
+    In this case, we have that
+    \[E(t \mapsto 1) = \int_0^h dt - h = 0\]
+    \[E(t \mapsto t) = \int_0^h t dt - h \cdot 0 = \frac{1}{2} h^2 \neq 0\]
+    Hence we have that $E(p) = 0$ for all $p \in \Pbb_0$. In this case the Peano Kernel is 
+    \[K(s) = \frac{1}{0!} E[t \mapsto (t - s)_+^0] = \int_0^h (t - s)^0_+ dt - h (0 - s)_+^0 = \int_s^h 1 dt - 0 = h - s \]
+    This is just the function:
+    \[\includegraphics[width=0.6\textwidth]{Figures/lecture4/lec4-2.png}\]
+    Note that $K(s)$ does not change sign so
+    \[\int_0^h |K(s)| ds = \int_0^h (h - s) ds = \frac{1}{2} h^2\]
+    Hence we have that
+    \[|\int_0^h g(s) ds - h g(0)| \leq \frac{1}{2} h^2 \max_{0 \leq t \leq h} |g'(t)|\]
+    This can't be improved, just pick $g(t) = t$ and the above expression will hold as an equality.
+\end{example}
+
+Let's try another example,
+\begin{example}[Midpoint rule]
+    Let's consider
+    \[E(g) = \int_0^h g(t) dt - h g(\frac{h}{2})\]
+    We have that $E(p) = 0$ for all $p \in \Pbb_1$ with $E[t \mapsto t^2] = \frac{h^3}{12}$. We take $n = 1$ and let $s \in [0, h]$, then
+\begin{align*}
+    K(s) &= \frac{1}{1!} E[t \mapsto (t - s)_+]\\
+    &= \int_s^h (t - s) dt - h (\frac{1}{2} h - s)_+\\
+    &= \begin{cases}
+        \frac{1}{2}(h - s)^2 - h(\frac{1}{2} h  - s), \quad s \leq \frac{1}{2}h\\
+        \frac{1}{2}(h - s)^2,\quad s > \frac{1}{2}h
+    \end{cases}\\
+    &= \begin{cases}
+        \frac{1}{2}s^2,\quad s \leq \frac{1}{2}\\
+        \frac{1}{2}(h-s)^2,\quad s > \frac{1}{2}
+    \end{cases}
+\end{align*}
+We have the picture
+\[\includegraphics[width=0.4\textwidth]{Figures/lecture4/lec4-3.png}\]
+Note that $K(s)$ has a single sign, so
+\begin{align*}
+    \int_0^h |K(s)| ds &= \int_0^h K(s) ds\\
+    &= 2 \int_0^{h/2} \frac{1}{2} s^2 ds\\
+    &= \frac{1}{3} (\frac{h}{2})^3\\
+    &= \frac{h^3}{24}
+\end{align*}
+Hence we have that
+\[|\int_0^h g(t) dt - h g(\frac{h}{2})| \leq \frac{h^2}{24} \max_{0 \leq t \leq h} |g''(t)|\]
+and the maximum is achieved with some choice of functions $g(t) = t^2$.
+\end{example}
+
+\begin{question}
+    By these 3 previous examples, we want to ask:
+    \begin{enumerate}
+        \item Is $K(S)$ always single signed?
+        \item What if $g$ does not belong to $C^{n+1}[0, h]$?
+    \end{enumerate}
+\end{question}
+
+Let's start with Question 2, we know that if $E(p) \equiv 0$ for all $p \in \Pbb_n$, then the error may be written as
+\[E(g) = \int_0^h K(s) g^{(n+1)}(s) ds\]
+Suppose we only know that $g \in C^{n}[0, h]$, then the formula above makes no sense. Why don't we instead consider $p \in \Pbb_{n-1} \subseteq \Pbb_n$? Hence, we pretend that we only know $E(p) \equiv 0$ for all $p \in \Pbb_{n-1}$.
+
+\begin{example}[Kernal is not single signed]
+Let's try this on the midpoint rule if $g \in C^1[0, h]$ (previously assumed it's in $C^2$), then $E(p) \equiv 0$ for all $p \in \Pbb_0$.\\
+
+In this case, we denote the kernel associated with $n = 0$ as $K_0$ and
+\[K_0(s) = \frac{1}{0!} E[t \mapsto (t - s)_+^0] = \int_s^h dt = \int_s^h 1 dt - h(\frac{h}{2} - s)_+^0 = \begin{cases}
+    (h-s)-h,\quad s < \frac{h}{2}\\
+    h-s,\quad s \geq \frac{h}{2}
+\end{cases} \]
+Hence we have that
+\[K_0(s) = \begin{cases}
+    -s, \quad s < \frac{h}{2}\\
+    h-s, s \geq \frac{h}{2}
+\end{cases}\]
+The graph looks like:
+\[\includegraphics[width=0.4\textwidth]{Figures/lecture4/lec4-4.png}\]
+This is NOT a single signed function! In this case, we have that
+\[\int_0^h |K_0(s)| ds  = \frac{h^2}{4}\]
+So we obtained that
+\[|\int_0^h g(s) ds - h g(\frac{h}{2})| \leq \frac{h^2}{4} \max_{0 \leq t \leq h} |g'(t)|\]
+Sometimes it might actually be better to only use one derivative instead of two, for example consider $g(t) = e^{-1000t}$, the error bound for a single derivative is better than that of a double derivative.
+\end{example}
+
+\begin{remark}
+    P. D. Lax and Louis Nivenberg. One time Nivenberg was interviewed by a popular magazine and was asked ``What's one reason you would attribute to your success in mathematics?" Nivenberg thought about it and answered: ``Whenever I get stuck, I always try to do integration by parts." Nivenberg later admitted that he was actually being half-serious while answering this.
+\end{remark}
+
+We see now that $K(s)$ is not always single-signed, but in a lot of cases it is. So much so that we want show the following corollary.
+\begin{corollary}
+    Suppose $E(p) \equiv 0$ for all $p \in \Pbb_n$ and that 
+    \[E[t \mapsto (t - s)^n_+] \text{ is single signed for $s \in [0, h]$.}\]
+    If $g \in C^{n+1}[0, h]$, then there exists some $\xi \in (0, h)$ such that
+    \[E(g) = \frac{1}{(n+1)!} E[t \mapsto t^{n+1}] g^{(n+1)}(\xi)\]
+\end{corollary}
+
+\begin{proof}
+    By Peano Kernel Theorem, we have that 
+    \begin{align*}
+        E(g) &= \int_0^h K(s) g^{(n+1)}(s) ds
+    \end{align*}
+    where $K(s)$ is single-signed, without loss we will assume that $K(s) \geq 0$. Let's then consider
+    \[Q = [\int_0^h K(s) g^{(n+1)}(s) ds] / [\int_0^h K(s) ds]\]
+    Note that the denominator is zero only when $K(s)$ is zero almost everywhere (since $K(s)$ has signle sign), which are degenerate cases we ignore. Now, we have that
+    \[\min_{0 \leq t \leq h} g^{(n+1)}(t) \leq Q = \frac{\int_0^h K(s) g^{(n+1)}(s) ds}{\int_0^h K(s) ds} \leq \max_{0 \leq t \leq h} g^{(n+1)}(t)\]
+    This means that $Q$ is in the range of the function $g^{(n+1)}(t)$ for $t \in [0, h]$. By the intermediate value theorem, there exists a point $\xi \in (0, h)$ such that
+    \[Q = g^{(n+1)}(\xi)\]
+    Hence, $E(g) = \int_0^h K(s) g^{(n+1)}(s) ds = Q \int_0^h K(s) ds = g^{(n+1)}(\xi) \int_0^h K(s) ds$. This is true for all $g \in C^{n+1}[0, h]$. Let's choose $g(t) = t^{n+1}$, and the result reads
+    \[E(t^{n+1}) = \left(\int_0^h K(s) ds\right) g^{(n+1)}(\xi) = \left(\int_0^h K(s) ds\right) (n+1)! \]
+    Hence we have that
+    \[\int_0^h K(s) ds = \frac{1}{(n+1)!} E(t^{n+1})\]
+    Hence, we conclude that
+    \[E(g) = \frac{1}{(n+1)!} E(t^{n+1}) g^{(n+1)}(\xi)\]
+\end{proof}
+
+\begin{example}Applying this corollary:
+\begin{enumerate}
+    \item For the trapezoidal rule, we have that
+    \[E(t \mapsto t^2) = -\frac{1}{6} h^2 \text{ and } K(s) \leq 0\]
+    Hence, there exists $\xi \in (0, h)$ such that
+    \[\int_0^h g(t) dt - \frac{h}{2} \{g(0) + g(h)\} = \frac{1}{2!} \frac{h^3}{6} g''(\xi) = -\frac{h^3}{12} g''(\xi)\]
+    \item For the midpoint room, we have that
+    \[E(t \mapsto t^2) = \frac{h^3}{12} \text{ and } K(s) \geq 0\]
+    So there exists $\xi \in (0, h)$ such that
+    \[\int_0^h g(t) ds - h g(\frac{h}{2}) = \frac{1}{24} h^3 g''(\xi)\]
+    \item For the left hand endpoitn rule, we have that
+    \[E(t \mapsto t) = \frac{1}{2} h^2 \text{ and } K(s) \geq 0\]
+    Sot here exists $\xi \in (0, h)$, we have that
+    \[\int_0^h g(t) dt - h g(0) = \frac{h^2}{2} g'(\xi)\]
+\end{enumerate}
+    Notice that $(1)$ to $(3)$ here immediately give the previous bounds for $|E(g)|$ obtained earlier. However, these results in this example are strongr in the sense that they are equalities (so they cannot be improved) and they gave the sign of the error.
+\end{example}
+
+\subsection{Interlude (Mathematical Candy / New Rules from Old)}
+ We showed that there exist $\xi_T, \xi_M$ such that:
+ \begin{itemize}
+     \item For the trapezoidal rule (T),
+     \[E_T(g) \coloneqq \int_0^h g(t) dt - \frac{h}{2}\{g(0) + g(h)\} = -\frac{h^3}{12} g''(\xi_T)\]
+     \item For the midpoint rule (M),
+     \[E_M(g) \coloneqq \int_0^h g(t) dt - h g(\frac{h}{2}) = \frac{h^3}{24} g''(\xi_M) \]
+ \end{itemize}
+
+\begin{question}
+Can we exploit the fact that the different signs of error can be used to create a new rule with higher accuracy?    
+\end{question}
+
+Let's try to construct a new rule,
+\[\Tilde{I}(g) = \alpha_M h g(\frac{h}{2}) + \alpha_T \frac{h}{2} \{g(0) + g(h)\}, \text{ for $\alpha_T, \alpha_M$ t.b.d}\]
+So we then define the new error as
+\[\Tilde{E}(g) = \int_0^h g(t) dt - \Tilde{I}(g)\]
+
+Then we compute that
+\[\Tilde{E}(t \mapsto 1) = h - h \alpha_T - h \alpha_M \]
+If we want this to be $0$, we need that $\alpha_T + \alpha_M = 1$. Hence, we have that
+\[\Tilde{E}(g) = (\alpha_T + \alpha_M) \int_0^h g(t) dt - \Tilde{I}(g) = \alpha_T E_T(g) + \alpha_M E_M(g) \]
+Now, for linear terms
+\[\Tilde{E}(t \mapsto t) = \alpha_T E_T(t \mapsto t) + \alpha_M E_M(t \mapsto t) = \alpha_T(0) + \alpha_M(0) = 0\]
+For the quadratic term, we have that
+\[\Tilde{E}(t \mapsto t^2) = -\frac{h^3}{6} \alpha_T + \frac{h^3}{12} \alpha_M\]
+If we want this to be $0$, then we are solving the linear system
+\[\begin{cases}
+    \alpha_M + \alpha_T = 1\\
+    \alpha_M = 2\alpha_T
+\end{cases}\]
+This tells us that
+\[\alpha_M = \frac{2}{3} \text{ and } \alpha_T = \frac{1}{3}\]
+
+Hence, the new rule is
+\[\Tilde{I}(g) = \frac{2}{3} h g(\frac{h}{2}) + \frac{1}{3} \frac{h}{2} \{g(0) + g(h)\} = \frac{h}{6} \{g(0) + 4 g(\frac{h}{2}) + g(h)\}\]
+This is just \textbf{Simpson's Rule}!\\
+
+We could repeat this on Simpson's rule and another rule with an opposite sign, then we can use this to make other rules. This will be very important when we use them to solve ODEs.
 
 \end{document}
