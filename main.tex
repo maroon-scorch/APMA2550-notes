@@ -734,7 +734,7 @@ Peano's Kernel Theorem is not usually covered in many numerical analysis, but it
 \begin{example}
     Here are some applications of the theorem: For the Trapezoidal rule, we know that $E(p) \equiv 0$ for all $p \in \Pbb_1$, and we show that $E[t \mapsto t^3] = -\frac{1}{6}h^3 \neq 0$, so applying the Peano kernel theorem with $n = 1$, we have that for $s \in [0, h]$,
        \begin{align*}
-           K(s) &= \frac{1}{1!} E[t \mapsto t(-s)^1_+]\\
+           K(s) &= \frac{1}{1!} E[t \mapsto (t-s)^1_+]\\
            &= \int_0^h (t - s)_+ dt - \frac{h}{2}[(h - s)_+ - (0 - s)_+]\\
            &= \int_s^h (t - s) dt - \frac{h}{2}\{(h - s) + 0\} \tag*{$(t - s)_+$ is non-zero only when $t > s$}\\
            &= \frac{1}{2} (h - s)^2 - \frac{1}{2} h(h-s)\\
@@ -944,5 +944,476 @@ Hence, the new rule is
 This is just \textbf{Simpson's Rule}!\\
 
 We could repeat this on Simpson's rule and another rule with an opposite sign, then we can use this to make other rules. This will be very important when we use them to solve ODEs.
+
+\newpage
+\section{Lecture 5}
+
+\subsection{Composite Quadrature Rule}
+
+We are interested in solving the IVP
+\[\frac{dg}{dt}(t) = g(t), u(t_0) = u_0\]
+for g ``reasonable". We had an algorithm given by, for example the trapezoidal rule,
+\[u_{k+1} = u_k + \frac{h}{2} [g(t_k) + g(t_{k+1})], k \geq 0, \quad (X)\]
+, where $t_k = kh$. Note that we can plug in any other quadrature.
+
+\begin{question}
+    Can we estimate the error and/or prove convergence?
+\end{question}
+
+Indeed, the error at the $k$-th step is
+\begin{align*}
+    u(t_{k+1}) - u_{k+1} &= \{ u(tk) + \int_{t_k}^{t_{k + 1}} g(s) ds\} - \{u_k + \frac{h}{2} [g(t_k) + g(t_{k+1})]\}\\
+    &= (u(t_k) - u_k) + \{\int_{t_k}^{t_{k+1}} g(s) ds - \frac{h}{2} [g(t_k) + g(t_{k+1})\}\\
+    &= (u(t_k) - u_k) + \frac{1}{12} h^3 g''(\xi_k) \tag*{Peano's Kenrel Theorem for Trapezoidal Rule, $\xi_k \in (t_k, t_{k+1})$}
+\end{align*}
+We also note that $u(t_0) - u_0 = 0$. We can extract the error out of this telescoping sum for $k = 0, 1, ..., n-1$ and see that
+\begin{align*}
+    u(t_n) - u_n &= \sum_{k=0}^{n-1} \frac{1}{12} h^3 g''(\xi_k)\\
+    &= \frac{1}{12}(nh) h^2 \{\frac{1}{n} \sum_{k = 0} g''(\xi_k)\}\\
+    &= \frac{1}{12} (t_n - t_0) h^2 \{\frac{1}{n} \sum_{k = 0} g''(\xi_k)\}
+\end{align*}
+Note that
+\[\min_{t_0 \leq t \leq t_n} g''(t) \leq \frac{1}{n} \sum_{k = 0}^{n-1} g''(\xi) \leq \max_{t_0 \leq t \leq t_n} g''(t)\]
+Hence, by the Intermediate Value Theorem, there exists $\tau_n \in (t_0, t_n)$ such that $\frac{1}{n} \sum_{k = 0}^{n-1} g''(\xi) = g''(\tau_n)$. Hence
+\begin{align*}
+    u(t_n) - u_n &= \frac{1}{12} (t_n - t_0) h^2 g''(\tau_n)
+\end{align*}
+
+\begin{remark}[Digression to Gauss-Legendre Rule]
+For the $n+1$-point Gauss-Legendre rule, we have the polynomial
+$$\varphi(t) = (t - \xi_0) (t - \xi_1) ... (t - \xi_n)$$
+which we seek to satisfy
+$\int_a^b \varphi(t) p(t) dt = 0$ for all $p \in \Pbb_{2n - 1}$. This comes down to finding a polynomial that's orthogonal to all polynomials of degree less than or equal to $2n - 1$. We can do this using Gram-Schmidt, then the roots of $\varphi(t)$ are the nodes of the Gauss-Legendre Rule. This is a non-linear problem in the sense that solving for the roots of $\varphi(t)$ is non-linear.
+\end{remark}
+
+More generally, we have the following theorem
+\begin{theorem}
+    Let $\{t_k, u_k\}_{k = 0}^N$ be defined by Algorithm $(X)$ based on a quadrature rule $Q$ that has remainder 
+    \[\int_0^h g(s) ds - Q_{[0, h]}(g) = C h^{r+1} g^{r)}(\xi), \xi \in (0, h)\]
+    Then, there exists $\tau_n \in (t_0, t_n)$ such that
+    \[u(t_n) - u_n = \Tilde{C} h^r (t_n - t_0) g^{(r)}(\tau_n)\]
+    for $n = 1, 2, ..., N$.
+\end{theorem}
+
+\begin{proof}
+    Similar to above.
+\end{proof}
+
+\begin{corollary}
+From the theorem above, we obtain the corollaries:
+\begin{enumerate}
+    \item If $g \in C^{r}[t_0, t_n]$, then $u(t_n) - u_n = O(h^r)$ which tends to $0$ as $h \to 0$. Hence, Algorithm $(X)$ is convergent as a rate of $O(h^r)$.
+    \item If we choose $n = N$ from Theorem and use the Trapezoidal rule, then with $t_N = b$ and $t_0 = a$, we get
+    \[ \int_a^b g(s) ds - h \sum_{k=0}^{N} {''} g(t_k) = \frac{1}{12}(b-a) h^2 g''(\tau), \tau \in (a, b) \]
+    The notation $\sum''$ indicates that the first and final terms are halved. Pictorially, we are doing
+\[\includegraphics[width=0.6\linewidth]{Figures//lecture5/lec5-1.png}\]
+    In other words, we get the error in Composite Trapezoidal Rule.
+\end{enumerate}
+\end{corollary}
+
+\begin{example}
+    Let's try to approximate $\int_0^1 \frac{4}{1 + t^2} dt = \pi$. Let's try to use rules with more and more points. Doing them in a program, we get that
+
+    \begin{center}
+\begin{tabular}{||c c c||} 
+ \hline
+ N & Error for Trapezoid & Error for Simpsion \\ [0.5ex] 
+ \hline\hline
+ 1 & 0.2 & 0.00850095 \\ 
+ \hline
+ 2 & 0.102353 & 0.000626097  \\
+ \hline
+ 4 & 0.0246784 & 4.8676(-5) \\
+ \hline
+  8 & 0.006206 & 3.02298(-6) \\
+ \hline
+  16 & 0.001560 & 1.91704...(-7) \\
+ \hline
+ 32 & 0.0003897 & 1.1959...(-8) \\ 
+  \hline
+ $\infty$ & $O(h^2)$ & $O(h^4)$ \\ [1ex] 
+ \hline
+\end{tabular}
+\end{center}
+
+We get $h^2$ and $h^4$ by fitting a line to the data. WHat you do is to assume that
+\[E_n = C n^{-\alpha}, \text{ for $C, \alpha$ t.b.d}\]
+Then we take logarithm to get
+\[\log E_n = \log C - \alpha \log n\]
+We then do a plot of $\log E_n$ against $\log n$ (which is linear with slope $-\alpha$):
+\[\includegraphics[width=0.5\linewidth]{Figures//lecture5/lec5-2.png}\]
+Then, carrying out a linear regression on log-log data allows us to find the best $C$ and $\alpha$. 
+\end{example}
+
+\begin{example}
+    Consider the integration $\int_0^1 t^{1/2} dt = \frac{2}{3}$.
+    \begin{itemize}
+        \item We use the Trapezoidal rule in this case and compare $\log E_n^{trap}$ vs $\log n$ again, but we find that $\alpha \approx 1.47$. THis is because the function is not so smooth. This has a reduced rate from $O(N^2)$ given by the theorem.\\
+        \item We then compare $\log E_n^{simp}$ with $\log n$ using Simpson's rule, this gives that $\alpha \approx 1.499$. We did twice as much work but has no significant increase in convergence!
+    \end{itemize}
+\[\includegraphics[width=0.5\linewidth]{Figures//lecture5/lec5-3.png}\]
+    The point is that we have a loss of convergence because the function is $t^{1/2}$ not smooth at $t = 0$ as it has an infinite derivative there.
+\end{example}
+
+\begin{question}
+    Can we explain this theoretically?
+\end{question}
+
+Indeed, let's consider $f(t) = t^\alpha$ with $0 < \alpha < 1$ and look at the error $t \in [0, h]$, we find that the error
+\begin{align*}
+    \int_0^h f(t) dt - \frac{h}{2} [f(0) + f(h)] &= \frac{h^{\alpha + 1}}{\alpha + 1} - \frac{h^{\alpha + 1}}{2}\\
+    &= \frac{\alpha - 1}{\alpha + 1} h^{\alpha + 1}\\
+    &= \frac{\alpha - 1}{\alpha + 1} N^{-(1+\alpha)} \tag*{Recall $h = 1/N$}
+\end{align*}
+Hence, we expect a rate of convergence at best $O(N^{-(1 + \alpha)}) = O(h^{1 + \alpha})$. Note that if $\alpha$ gets arbitrarily closer to $-1$, the convergence just completely fails. Here's an idea to adjust this:
+
+\begin{idea}
+    Why don't we use a smaller value of $h$ on the first interval? (e.g. replace $h$ by $h_1 = t_1 - t_0$, to be determined). In this case, the error would be (from the first interval), following the same argument
+    \[\frac{\alpha - 1}{\alpha + 1} h_1^{1 + \alpha}\]
+    If we want the error to be $O(h^2)$ for the trapezoidal rule, we want to select $h$ such that
+    \[\frac{\alpha - 1}{\alpha + 1} h_1^{1 + \alpha} = c n^{-3}\]
+    We want $n^{-3}$ in this since it will be added up with the other terms to together contribute to a total $n^{-2}$. (The local error should be one degree less than the global error). Hence, we want to choose $h_1 \sim n^{-3/(1+\alpha)}$, this will give error $c n^{-3}$ from first interval.\\
+    What about the second interval? Well doing the same argument as before, this is from $h$ to $2h$, and we will still get an $h^{\alpha + 1}$. All of the errors would come from the second interval. So we do the same for the second, and then the same for the third. But at each time the difference between $h_n  - h_{n-1}$ gets larger and larger.\\
+
+    In principle, we are trying to make a mesh that adapts around the function given here. Let's try to use a mesh that is non-uniformly spaced and tailored to the function we are trying to approximate. 
+\end{idea}
+
+\subsection{Mesh Grading}
+
+Let's introduce a mesh grading function $\Gamma: [a, b] \to [0, 1]$ and choose nodes $t_k$ such that
+\[\Gamma(t_k) = \frac{k}{N}\]
+This is a mapping from a non-uniformly spaced nodes to uniformly spaced nodes.
+
+\begin{example}
+    Consider for example the following plot
+\[\includegraphics[width=0.5\linewidth]{Figures//lecture5/lec5-4.png}\]
+    In this case, we have turned the non-uniform spaces to uniformly spaced nodes. 
+\end{example}
+
+To construct the function, we would want $\Gamma(a) = 0$ and $\Gamma(b) = 1$ with $t_0 = a$ and $t_N = b$. We also want that
+\[C \geq \Gamma'(s) \geq c > 0\]
+for all $s \in [a, b]$. We want to find an expression for error obtained by approximating 
+\[\int_a^b f(t) dt \text{ by \underline{Composite Rule with nodes at $\{t_k\}$}}\]
+In particular, we know it varies with $\Gamma$, so perhaps that makes the problem even more complicated.\\
+
+Let's suppose that our base quadrature rule satisfies, by the Peano Kernel Theorem,
+\[E_{[0, h]}(g) = \int_0^h g(t) ds - Q_{[0, h]}(g)  = \int_0^h K(s, h) g^{(p)}(s) ds\]
+for some $p \in \Nbb$ and some kernel $K(s, h)$ depending on $s$ and $h$. 
+
+\begin{example}
+For example, if we are using the midpoint rule, then $p = 2$ and the kernel function $K_M$ for midpoint rule ($M$ denotes this is for the midpoint rule) is
+\[K_M(s, h) = \begin{cases}
+    1/2 s^2,\quad s < \frac{h}{2}\\
+    1/2 (h - s)^2, s \geq \frac{h}{2}
+\end{cases}\]
+Notice that $K_M(s, h) = h^2 K_M(\frac{s}{h}, 1)$ is of $O(1)$.
+\end{example}
+
+In general, we will have that
+\[K(s, h) = h^p K(\frac{s}{h}, 1) \sim h^p\]
+Hence, the error
+\begin{align*}
+    E_{[0, h]}(g) &= h^p \int_0^h K(\frac{s}{h}, 1) g^{(p)}(s) ds\\
+    &\leq h^p \max_{0 \leq s \leq h} |K(\frac{s}{h}, 1)| \int_0^h |g^{(p)}(s)| ds\\
+    &\leq C h^p \int_0^h |g^{(p)}(s)| ds \tag*{Note that $C$ is independent of $g$}
+\end{align*}
+
+Now, we have that
+\begin{align*}\allowdisplaybreaks
+    E(\Gamma) &= \int_a^b f(t) dt - \sum_{k=0}^{N-1} Q_{[t_k, t_{k+1}]}(f)\\
+    &= \sum_{k=0}^{N-1} \{\int_{t_k}^{t_{k+1}} f(t) dt - Q_{[t_k, t_{k+1}]}(f) \}\\
+    &= \sum_{k = 0}^{N-1} E_{[t_k, t_{k+1}]}(f)\\
+    &\leq C \sum_{k = 0}^{N-1} h^p_k \int_{t_k}^{t_{k+1}} |f^{(p)}(s)| ds \tag*{where $h_k = t_{k+1} - t_k$ and use inequality before}
+\end{align*}
+Note that $\frac{1}{N} = \Gamma(t_{k+1}) - \Gamma(t_k) = h_k \Gamma'(\xi_k)$ for some $\gamma_k \in (t_k, t_{k+1})$ with Mean Value Theorem. Hence, we have that
+\[h_k = \frac{1}{N \Gamma'(\xi_k)}\]
+This tends to $0$ as $N \to \infty$ (since we assumed that derivatives are bounded away from zero). Therefore, since $\Gamma$ is continuous, we have that
+
+\[\xi_k \in (t_k,t_{k+1}) \text{ and } \Gamma'(\xi_k) \sim \Gamma'(s), s \in (t_k, t_{k+1})\]
+
+Hence, we see that the expression
+\[h_k^p \int_{t_k}^{t_{k+1}} |g^{(p)}(s)| ds = \int_{t_k}^{t_{k+1}} h_k^p |f^{(p)}(s)| ds \]
+\[\approx \int_{t_k}^{t_{k+1}} \frac{1}{(N \Gamma'(s))^p} |f^{(p)}(s)| ds\]
+
+As a consequence, we get that
+\[E(\Gamma) \leq C N^{-p} \sum_{k = 0}^{N-1} \int_{t_k}^{t_{k+1}} \frac{|f^{(p)}(s)| ds}{\Gamma'(s)^p} = C N^{-p} \int_a^b \frac{|f^{(p)}(s)|}{\Gamma'(s)^p} ds  \]
+
+\textcolor{red}{Thus, we have obtained a magical formula: Given a mesh grading function, we can express the error in terms of the Mesh Grading Function!}\\
+
+Our task now is to find an appropriate Mesh Grading function $\Gamma$ that minimizes this error $E(\Gamma)$. Let's denote the optimal by $\Gamma_*$ (assume it exists and is unique), and consider what properties it must satisfy?\\
+
+Indeed, consider
+\[\Gamma(s) = \Gamma_*(s) + \epsilon \eta(s) \quad \epsilon << 1 \text{ and } \eta(a) = \eta(b) = 0\]
+This fixes the endpoints and still keeps the grading. For a stationary point of $E(\Gamma)$, we fix $\eta$ and vary $\epsilon$ and consider trying to solve
+\begin{align*}
+    \frac{d}{d\epsilon} E(\Gamma_* + \epsilon \eta) |_{\epsilon = 0} &= 0
+\end{align*}
+Computing the LHS gives
+\begin{align*}
+    0 &= C N^{-p} \int_a^b ds \frac{|f^{(p)}(s)| \eta'(s)}{\Gamma'_*(s)^{p+1}} \tag*{Quotient Rule with respect to $\epsilon$}
+\end{align*}
+But this is $0$ for all choices of $\eta$ such that $\eta(a) = \eta(b) = 0$. Note that if we take the second derivative, we furthermore have
+\[C N^{-p} p (p +1) \int_a^b ds |f^{(p)}(s)| \frac{\eta'(s)^2}{\Gamma'_*(s)^{p+2}} \geq 0\]
+By the second derivative test, we know that $\epsilon = 0$ is a minimum so $E(\Gamma_*)$ is minimal.\\
+
+We integrate by parts on the $0 = \int_a^b ds \frac{|f^{(p)}(s)| \eta'(s)}{\Gamma'_*(s)^{p+1}}$ to get 
+\begin{align*}
+    0 &= [\frac{|f^{(p)}(s)|}{\Gamma'_*(s)^{p+1}} \eta(s)]_a^b - \int_a^b \eta(s) \frac{d}{ds} \frac{|f^{(p)}(s)|}{\Gamma'_*(s)^{p+1}}\\
+    &= 0 - \int_a^b \eta(s) \frac{d}{ds} \frac{|f^{(p)}(s)|}{\Gamma'_*(s)^{p+1}} \tag*{Since $\eta(a) = \eta(b) = 0$}
+\end{align*}
+This is the integral of a non-negative function, so we get that
+\[\frac{d}{ds} \frac{|f^{(p)}(s)|}{\Gamma'_*(s)^{p+1}} = 0, a < s < b\]
+Hence, we have that
+\[\Gamma'_*(s)^{p+1} \alpha |f^{(p)}(s)|\]
+with some constant, and $\Gamma_*(a) = 0$ and $\Gamma_*(b) = 1$.\\
+
+Now we claim that the optimal function is
+\[\Gamma_*(t) = \frac{\int_a^t |f^{(p)}(s)|^{1/(p+1)} ds}{\int_a^b |f^{(p)}(s)|^{1/(p+1)} ds}\]
+We can check that it satisfies:
+\begin{enumerate}
+    \item $\Gamma_*(a) = 0$ and $\Gamma_*(b) = 1$
+    \item $\frac{d}{ds} \frac{|f^{(p)}(s)|}{\Gamma'_*(s)^{p+1}} = 0, a < s < b$
+\end{enumerate}
+
+Let $m(f)$ be the denominator, then we can write
+\[\Gamma_*(t) = \frac{1}{m(f)} \int_a^t |f^{(p)}(s)|^{1/(p+1)} ds, a \leq t \leq b\]
+
+\begin{question}
+    What is the Error we get for the optimal mesh?
+\end{question}
+
+Substituting this into $E$, we have that
+\[E(\Gamma_*) \leq C N^{-p} m^p \int_a^b |f^{(p)}(s)|^{1 - \frac{p}{1+p}} ds\]
+
+Note that $1 - \frac{p}{p+1} = \frac{1}{p+1}$. Simplifying this, we have that
+\[E(\Gamma_*) \leq C N^{-p} m^p \int_a^b |f^{(p)}(s)|^{1/(p+1)} ds = C N^{-p} m(f)^{p+1}\]
+
+Putting it together, we summarize this into a theorem.
+\begin{theorem}
+    Suppose $f$ satisfies
+    \[m(f) = \int_a^b |f^{(p)}(s)|^{1/(p+1)} ds < \infty\]
+    where $f^{(p)}$ is not identically zero (if it is there's nothing to prove). Let $Q_{[0, h]}$ be a quadrature rule that is exact for all polynonmials $r \in \Pbb_p$. Then there exists a mesh grading function $\Gamma_*$ such that
+    \[E(\Gamma_*) \leq C N^{-p} m(f)^{p+1} = C N^{-p} ||f^{(p+1)}||_{L^{1/p}}\]
+    where $C$ is independent of $f$.
+\end{theorem}
+
+\begin{remark}
+    This is a very fundamental theorem in numerical analysis, but you don't really find them in textbooks these days. One good source is from DeVore and Lorentz.
+\end{remark}
+
+\begin{example}
+    Let's try $f(t) = t^\alpha$ with $-1 < \alpha < 1$ and choose the Trapezoidal rule, so $p = 2$. Then we note that
+    \[f^{(p)}(t) \sim t^{\alpha - p}\]
+    Then we see that for $s \geq 0$
+    \[\int_0^s |f^{(p)}(t)|^{1/(p+1)} dt = \int_0^s t^{\frac{\alpha - p}{p+1}} dt = \int_0^s t^{\frac{\alpha - 2}{3}} = s^{(a+1)/3} < \infty \]
+    Thus $m(f) < \infty$. The Theorem then implies that Trapezoidal Rule gives rates $\mathcal{O}(N^{-2})$ now and we choose
+    \[\Gamma_*(t_k) = \frac{k}{N} \text{ and } \Gamma_*(s) = s^{(\alpha + 1)/3}\]
+    Hence,
+    \[t_k^{(a + 1)/3} = \Gamma_*(t_k) = \frac{k}{N} \iff t_k = (\frac{k}{N})^{3/(1 + \alpha)}, k = 0, 1, ..., N\]
+    \mattie{Note that $a$ and $\alpha$ are used interchangeably in this example. Constants are also ignored in this examole.}
+\end{example}
+
+\newpage
+\section{Lecture 6}
+
+The story so far ...
+
+\mattie{TODO: fill in later, just review of last lecture}
+
+We found that an optimal solution exists with
+\[\Gamma_\star(a) = 0; \Gamma_\star(b) = 1\]
+satisfying the differential equation
+\[\frac{d}{ds} \frac{|f^{(p)}(s)|}{\Gamma_\star'(s)^{p+1}} = 0, s \in [a, b]\]
+where $p$ is related to the order of the basic quadrature rule $Q$. The results in
+\[ | E[f, \Gamma_\star] | \leq C N^{-p} m_p(f)^{p+1}\]
+where $m_p(f)$ is the integral
+\[m_p(f) = \int_a^b |f^{(p)}(s)|^{1/(p+1)} ds\]
+
+We ended up with the theorem:
+\begin{theorem}
+    Suppose $f$ satisfies
+    \[m(f) = \int_a^b |f^{(p)}(s)|^{1/(p+1)} ds < \infty\]
+    where $f^{(p)}$ is not identically zero (if it is there's nothing to prove). Let $Q_{[0, h]}$ be a quadrature rule that is exact for all polynonmials $r \in \Pbb_p$. Then there exists a mesh grading function $\Gamma_*$ such that
+    \[E(\Gamma_*) \leq C N^{-p} m(f)^{p+1} = C N^{-p} ||f^{(p+1)}||_{L^{1/p}}\]
+    where $C$ is independent of $f$.
+\end{theorem}
+
+In some sense, this is the most fundamental result in numerical analysis because it tells you how to maximal approximate a function given a constrant on the number of points you can use.
+
+\subsection{Approximating Optimal Grid}
+
+\begin{question}
+    What are the bad news?
+\end{question}
+
+Here are some drawbacks on this theorem:
+\begin{itemize}
+    \item Often times, we cannot evaluate $\Gamma_\star$ in closed form. Often times, we only know that
+    \[\Gamma_\star(s) = \frac{1}{\int_a^b |f^{(p)}(s)|^{1/(p+1)} ds} \int_a^s |f^{(p)}(s)|^{1/(p+1)} ds \]
+    \item Even if we can, we might not be able to write down an explicit inverse.
+\end{itemize}
+
+\begin{question}
+    Let's suppose that we replace $\Gamma_\star(s)$ by an approximation $\Tilde{\Gamma}$ (where $\Tilde{\Gamma}$ is some mesh-grading function). Do we still get the same advantages as if we used $\Gamma_\star$?
+\end{question}
+
+Let's suppose $\Tilde{\Gamma} = \Gamma_\star + \epsilon \eta$ where $+\epsilon \eta$ is some perturbation where $\eta(a) = \eta(b) = 0$ and $\epsilon << 1$. Let the associated nodes be $\{\Tilde{t}_k\} = \Tilde{P}$ where
+\[\Tilde{\Gamma}(\Tilde{t}_k) = \frac{k}{N}, k = 0, 1, ..., N\]
+Can we expect $\Tilde{t}_k \to t_k$ as $\epsilon \to 0$?\\
+
+To do this, we need to estimate
+\begin{align*}
+    0 &= \frac{k}{N} - \frac{k}{N}\\
+    &= \Tilde{\Gamma}(\Tilde{t}_k) - \Gamma_\star(t_k)\\
+    \iff 0 &= \Tilde{\Gamma}(\Tilde{t}_k) - \Tilde{\Gamma}(t_k) + \epsilon \eta(t_k)\\
+    \iff -\epsilon \eta(t_k) &\approx (\Tilde{t}_k - t_k) \Tilde{\Gamma}'(t_k) \tag*{Mean Value Theorem}\\
+    &= (\Tilde{t}_k - t_k) (\Gamma'_\star(t_k) + \epsilon \eta(t_k))
+\end{align*}
+Hence, we have that
+\[t_k - \Tilde{t}_k \approx \frac{\epsilon \eta(t_k)}{\Gamma'_\star(t_k) + \epsilon \eta(t_k)} = O(\epsilon).\]
+
+\begin{question}
+    How does the error $E(f; \Tilde{\Gamma})$ compare with $E(f; \Gamma_\star)$? Notice that $E[f; \Tilde{\Gamma}] = E[f; \Gamma_\star + \epsilon \eta] \to E[f, \Gamma_\star]$ as $\epsilon \to 0$. Can we be more precise here? 
+\end{question}
+
+Last week, we proved that (as $\Gamma_\star$ is optimal),  
+\[\frac{d}{d\epsilon} E(\Gamma_\star + \epsilon \eta) |_{\epsilon = 0} = 0\]
+for all $\eta$ such that $\eta(a) = \eta(b) = 0$. We also showed that
+\begin{align*}
+    \frac{d^2}{d\epsilon^2} E(\Gamma_\star + \epsilon \eta) |_{\epsilon = 0} &= C N^{-p} p(p+1) \int_a^b ds \frac{|f^{(p}(s)|}{\Gamma'_\star(s)^{p+2}} \eta'(s)^2\\
+    &= C N^{-p} p (p+1) m^{p+1}(f) \int_a^b ds \frac{\eta'(s)^2}{\Gamma'_\star(s)}  \tag*{Since $\Gamma'_\star(s) = m^{-1} |f(s)|^{1/(p+1)}$ in summary}
+\end{align*}
+Let's call
+\[D(\Gamma_\star, \eta) \coloneqq \frac{d^2}{d\epsilon^2} E(\Gamma_\star + \epsilon \eta) |_{\epsilon = 0} \]
+
+
+What we have done is the following theorem:
+\begin{theorem}
+    Suppose we have an optimal mesh grading function perturbed in a way such that
+    \[\Gamma_\star \to \Gamma_\star + \epsilon \eta, \eta(a) = \eta(b) = 0\]
+    Then we have the following approximation of $\Gamma_\star$:
+    \begin{enumerate}
+        \item Optimal nodes: $t_k \to \Tilde{t}_k + O(\epsilon)$.
+        \item $E(f; \Gamma_*) \to E(f, \Gamma_*) + \frac{1}{2} \epsilon^2 D(\Gamma_*, \eta)$
+    \end{enumerate}
+\end{theorem}
+
+\begin{remark}
+    This is great news! This means that $E(f; \Gamma_*)$ is very insensitive to the change of notes. If $\Tilde{t}_k - t_k = O(\epsilon)$, then $E(f; \Tilde{\Gamma}) - E(f; \Gamma) = O(\epsilon^2)$. This means that a $10\%$ error in the approximation of the mesh grading gives a $1\%$ difference in the error functional. 
+\end{remark}
+
+But there's more bad news ... we don't know what the $t_k$'s are to begin with, so how can we approximate them?
+
+\begin{question}
+    What characterizes an optimal grid?
+\end{question}
+
+Recall that optimal grid function satisfies
+\[\frac{d}{ds} \frac{|f^{(p)}(s)|}{\Gamma'_\star(s)^{p+1}} = 0, s \in [a, b] \quad (\dagger)\]
+We could try to solve for this differential equation, and recall as from last week, $\Gamma'_\star(s)$ came from
+\[\Gamma'_\star(s) \simeq \frac{1}{N h_k}, s \in (t_k, t_{k+1})\]
+We can use this to rewrite the differential equation as
+\[\frac{d}{ds} \frac{|f^{(p)}(s)|}{\Gamma'_\star(s)^{p+1}} \simeq N^{(p+1)} h_k^{p+1} |f^{(p)}(s)|, s \in (t_k, t_{k+1})\]
+\[\simeq N^{(p+1)} h_k^p \int_{t_k}^{t_{k+1}} |f^{(p)}(t)| dt\]
+\[\simeq N^{(p+1)} C | E_{[t_k, t_{k+1}]}(f)|, s \in (t_k, t_{k+1}) \]
+where $| E_{[t_k, t_{k+1}]}(f)|$ is the \underline{local error} in approximating $\int_{t_k}^{t_{k+1}} f(t) dt$. Hence, $(\dagger)$ means that the local errors $|E_{[t_k, t_{k+1}]}(f)|$ for $k = 0, 1, ..., N-1$ are roughly equal on an optimal grid.
+
+\begin{question}
+    Let's suppose we have a grid where the error on a particular integral is much larger than the others. This is nowhere near close to the optimal grid (since its errors are roughly the same on all intervals). How can we reduce the error on this particular interval?
+\end{question}
+
+Recall that 
+\[|E_{[t_k, t_{k+1}]}(f)| \simeq h_k^{p+1} |f^{(p)}(s)|, s \in (t_k, t_{k+1})\]
+We can't change $|f^{(p)}(s)|$, so we want to try to \textbf{reduce $h_k$}, then this will reduce $|E_{[t_k, t_{k+1}](f)}|$.\\
+
+We could get smaller error by adding new points in the interval $(t_k, t_{k+1})$. Why don't we add in a new point between $(t_k, t_{k+1})$? We will subdivide the interval $(t_k, t_{k+1})$ by putting it in as the midpoint.
+\[ \includegraphics[width=0.6\linewidth]{Figures//lecture6/lec6-1.png}\]
+This corresponds to creating a new partition $P_{new}$ by removing $(t_k, t_{k+1})$ from $P$ and adding $(t_k, t_{k+1/2})$ and $(t_{k+1/2}, t_{k+1})$.\\
+
+In general, we could create an inductive algorithm as follows:
+\[    \includegraphics[width=0.5\linewidth]{Figures//lecture6/lec6-2.png}\]
+We start with the entire interval, then we subdivide once. We look at the interval with the highest error, we subdivide that, and then we keep doing this to generate a non-uniform grid.\\
+
+In general, we have a sequence of partitions $P = \{\Delta\}_{\Delta \in P}$ such that
+\begin{itemize}
+    \item $\Delta$ are non-overlapping.
+    \item $\bigcup_{\Delta \in P} \Delta = [a, b]$.
+\end{itemize}
+
+This seems to be a promising algorithm! But, in order to be able to run the algorithm, we still need two things:
+\begin{enumerate}
+    \item A basic quadrature rule $\int_\Delta f(t) dt \simeq Q(\Delta)$.
+    \item A criterion / way of estimating the error
+    \[\epsilon(\Delta) \simeq |\int_\Delta f(t) dt - Q(\Delta) |\]
+\end{enumerate}
+
+Let's suppose we have $Q(\Delta)$ and $\epsilon(\Delta)$, here's the algorithm
+
+\begin{tcolorbox}[standard jigsaw,opacityback=0]\\
+\begin{algorithm}[H]
+\caption{Subdivide Approximations - SUBDIVIDE(P)}
+\KwData{$Q(\Delta)$ and $\epsilon(\Delta)$ on interval $[a, b]$}
+\KwResult{A partition on $[a, b]$ approximating the optimal grid}
+We initialize the algorithm by setting $P = \{[a, b]\}$ and calling $\operatorname{SUBDIVIDE}(P)$.\;
+1. Find $\Delta_m \in P$ such that $\epsilon(\Delta_m) = \max_{\Delta \in P} \epsilon(\Delta)$\;
+2. Split $\Delta_m \to \Delta_L, \Delta_R$ where we break at the midpoint\;
+3. Let $\Tilde{P} = (P \setminus \Delta_m) \cup \{\Delta_L, \Delta_R\}$\;
+4. If $\sum_{\Delta \in \Tilde{P}} \epsilon(\Delta) \leq \leq TOL * \sum_{\Delta \in P} |Q(\Delta)|$ (TOL is some tolerance constant), then return $\sum_{\Delta \in \Tilde{P}} Q(\Delta)$\; Else, we call $\operatorname{SUBDIVIDE}(\Tilde{P})$;
+\end{algorithm}
+\end{tcolorbox}
+
+This is a great algorithm in theory, but, in practice, we want to
+\begin{itemize}
+    \item Put a $\operatorname{max\_iter}$ on the lengths of recursion.
+    \item Rather than refining one interval, we refine all intervals $\Delta$ whose $\epsilon(\Delta) \geq 90\% \cdot \max_{\Delta \in P} \epsilon(\Delta)$. 
+\end{itemize}
+
+\begin{question}
+    We still need a pair $Q(\Delta)$ and $\epsilon(\Delta)$! How can we be get a pair?
+\end{question}
+
+\begin{example}
+    Let's take $Q(\Delta)$ to be the trapezoidal rule, meaning that
+    \[Q_{[0, h]}(f) = \frac{h}{2} [f(0) + f(h)]\]
+    How to approximate this? Well, can we use Simpson's Rule to compute a more accurate approximation and take the difference? Indeed, let's consider the difference between Simpson's Rule and Trapezoidal Rule
+    \[\epsilon(\Delta) = |\frac{h}{6} \{f(0) + 4 f(h/2) + f(h)\} - \frac{h}{2} \{f(0) + f(h)\}|\]
+    In this case, we obtain that
+    \begin{align*}
+        \epsilon(\Delta) &= \frac{h}{6} |-2f(0) + 4 f(\frac{h}{2}) - 2 f(h)|\\
+        &= \frac{h}{3} |-f(0) + 2 f(\frac{h}{2}) - f(h)|, \tag*{We have $\Delta = (0, h)$}
+    \end{align*}
+\end{example}
+
+The instructor begins to perform a live demo of the algorithm described in this example.
+
+% About 20 runs, 2.061
+
+The proposed algorithm above eventually failed on $f(t) = 1/\sqrt{t}$ because it's not smooth at the origin.
+
+\begin{example}
+    Let's instead consider $Q(\Delta)$ to be the midpoint rule and write
+    \[Q_{[0,h]}(\Delta) = h f(\frac{h}{2})\]
+    This will allow us to integrate $f(t) = 1/\sqrt{t}$. However, if we take $\epsilon(\Delta)$ to be Simpson's Rule, we will still fail - we are still going to evaluate $f(0)$. Why don't we try to use the midpoint to error?\\
+
+    We know that $E_M = I - Q_M(h) = C h^3 $ (we proved this), then consider a composite midpoint rule defined by:
+    \[E_M^c= I - Q_M^L(\frac{h}{2}) - Q_M^R(\frac{h}{2}) = (I^L - Q_M^L) + (I^R - Q_M^R) = C(\frac{h}{2})^3 + C(\frac{h}{2})^3 = \frac{1}{4} C h^3\]
+
+    Hence we have that
+    \[\begin{cases}
+        I - Q_M(h) = C h^3,\\
+        I - Q_M^c(\frac{h}{2}) = \frac{1}{4} C h^3
+    \end{cases}\]
+    Solving this two lineat equations with unknowns $I$ and $C$, we have that
+    \[I = \frac{1}{3} (4 Q_M^c(h/2) - Q_M(h))\]
+    Thus, we should take $\epsilon(\Delta)$ to
+    \begin{align*}
+        \epsilon(\Delta) &= |\frac{1}{3} (4 Q_M^c(h/2) - Q_M(h)) - Q_M|\\
+        &= \frac{4}{3} |Q_M^c - Q_M|\\
+        &= \frac{4}{3} |\frac{h}{2} [f(h/4) + f(3h/4)] - h f(h/2)|\\
+        &= \frac{2h}{3} |f(h/4) - 2 f(h/2) + f(3h/4)|
+    \end{align*}
+    This is called \textbf{Richardson's Rule}. In general, you could do a similar Richardson extraction for any quadrature rule.
+\end{example}
+
 
 \end{document}
