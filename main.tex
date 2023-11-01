@@ -1625,7 +1625,7 @@ The instructor now presents a code demo of solving Fisher's equation with Euler'
 \begin{itemize}
     \item The Euler method sometimes works and sometimes blows up.
     \item This behavior persists even without the non-linear term. In this case, if we assume all the convolutions are zero, we get that
-    \[\frac{dc_k}{dt} = (1 - \epsilon k^2) c_k,\quad \text{ no coupling}\]
+    \[\frac{dc_k}{dt} = (\lambda - \epsilon k^2) c_k,\quad \text{ no coupling}\]
     The Euler method of the equation becomes
     \[c_k^{n+1} = c_k^n + h(\lambda - \epsilon k^2) c_k^n = (1 + z) c_k^n, z = h(\lambda - \epsilon k^2)\]
     Thus we have that $c_k^n = (1 + z)^n c_k^0$
@@ -1646,5 +1646,268 @@ Each time, we see that large / higher frequencies on $k$ makes Euler's method un
 The conclusion is that Euler's method is fine for certain problems (e.g. $K = 0$) and for $K = 1, 2, 3, 4$, but it becomes unstable when $K^2 h$ is too large.\\
 
 There's a balance between the choice of $\epsilon$ and $K$. Smaller $\epsilon$ makes $K$ better, but it makes the Euler method worse. Large $K$ makes spatial resolution better, but you start hacing problems with the $\epsilon$. \mattie{confirm??} There are different spatial resolutions fighting each other.
+
+\newpage
+\section{Lecture 8}
+
+\subsection{Stability}
+
+So far, we developed and analyzed the Euler scheme for the Initial Valued Problems, that is
+\[u_{n+1} = u_n + h f(t_n, u_n)\]
+We showed that it converges as $h \to 0$ in $O(h)$, provided that the true solution $u \in C^2[a, b]$. The \textbf{downside} is that the scheme can become unstable when $|1 - h \lambda| > 1$, in the case with $f(t, \lambda) = \lambda u$. e.g. if $f(t, \lambda) = \lambda u$, then
+\begin{align*}
+    u_{n+1} &= u_n + h \lambda u_n\\
+    &= (1 + h \lambda) u_n
+\end{align*}
+Hence we have that
+\[\frac{u_{n+1}}{u_n} = R(h \lambda), \text{ where } R(z) = 1 + z\]
+We are concerned with the case where $\lambda < 0$. If $\lambda > 0$, then the solution explodes exponentially already. If $\lambda < 0$, then we can talk about stability as a problem.
+\begin{question}
+    Why was stability an issue? (Don't you just choose $h$ sufficiently small?)
+\end{question}
+
+In the homework, we found that stability using a Finite Difference Method was that
+\[h < \frac{r^2}{2\epsilon}, r = \text{ mesh spacing } \]
+The error in the scheme is $O(r^2)$. This means that every time we increase the mesh by a factor of $2$, $h$ has to be decrease by a factor of $4$. This means that the time step requirement quickly goes out of control as $r$ gets finer.\\
+
+We also found that, for the case of Fourier methods, we got the corresponding condition is 
+\[\epsilon k^2 h < 1\]
+So $h \sim k^{-2}$, so again we have that $h$ scales the same as the finite difference method.\\
+
+\begin{question}
+    Does this phenomenon always happen?
+\end{question}
+
+Here's another application.
+\begin{example}[One Way Wave Equation]
+    Consider the PDE of the form
+    \[\frac{\partial u}{\partial t} + \frac{\partial u}{\partial x} = 0, t > 0, x \in \Rbb,\]
+    subject to $u(x, 0) = u_0(x)$ where $x \in \Rbb$. Note that this equation has no diffusion at all! For simplicity, let's assume that $u_0$ is $2\pi$-periodic and seek a solution of the form
+    \[u(x, t) = \sum_k c_k(t) e^{ikx} \text{ with } -\pi < x < \pi.\]
+    subject to $u_0(x) = \sum_k c_k(0) e^{ikx}$, so $c_k(0)$ is the $k$-th Fourier coefficient of $u_0(x)$.
+    \begin{remark}
+        In the homework, a lot of students probably said that the finite difference method is better than Fourier transform because it is simpler. But notice that the rate of convergence for the Fourier transform is faster than any polynomial (when k gets large), whereas FDM only gives roughly quadratic speed.
+    \end{remark}
+    Substituting and equating Fourier coefficients gives
+    \[\frac{d c_k}{dt} + ik c_k = 0 \quad \forall k\quad  (\star)\]
+    where $c_k(0)$ are all given. Hence, we solve the ODE and get that $c_k(t) = c_k(0) e^{-ikt}$ and so
+    \[u(x, t) = \sum_k c_k(0) e^{i k(x - t)}\]
+    Note if we let $t = 0$, we note that
+    \[u(x, 0) = \sum_k c_k(0) e^{ikx} = u_0(x)\]
+    In general, we have that
+    \[u(x, t) = u_0(x - t).\]
+    What does the solution look like? Well,
+    \[\includegraphics[width=0.5\linewidth]{Figures/lecture8/lec8-1.png}\]
+    Alternatively, \textbf{suppose we use Euler to solve $(\star)$}, we then have that Euler scheme
+    \[c_k^{n+1} = c_k^n - i kh c_k^n\]
+    where $c^n_k \simeq c_k(nh)$. Hence, we have that
+    \[c_k^n = (1 - i kh)^n c_k^0 = (1 - ikh)^n c_k(0)\]
+    This method converges as $h \to 0$ and $n \to \infty$. \textbf{BUT!!!!!!} we observe that
+    \[|c_k^n|^2 = (1 + k^2 h^2)^n |c_k^0|^2 = (1 + k^2 h^2)^n |c_k(0)|^2\]
+    Compare with $|c_k(t)|^2 = |c_k(0)|^2$, but since $1 + k^2 h^2 > 1$ when $h \neq 0$, this solution will definitely explode for any $h \neq 0$! There is no sufficiently small $h$ that could make the Euler scheme better, it will blow up the calculation no matter what time step we pick. Similarly, when $k \neq 0$ (outside the constant frequency), any solution will also blow up.\\
+
+    In this case, this shows that the Euler scheme is \textbf{unconditionally unstable} for this equation, that is
+    \[\forall k \neq 0: |c_k^n| \to \infty \text{ as } n \to \infty\]
+\end{example}
+
+This leads us to the next question - \textbf{when is the Euler scheme stable?} The above example shows that - to study stability, it suffices to consider equations of the form
+\[\frac{du}{dt} = \lambda u, \lambda \in \Cbb, \operatorname{Re}(\lambda) \leq 0.\]
+The condition that $\operatorname{Re}(\lambda) \leq 0$ indicates that the problem is stable. Some examples are
+\[\lambda = \begin{cases}
+    - \epsilon k^2, \text{ if we are solving Fisher/Heat}\\
+    -ik, \text{ One way wave}
+\end{cases}\]
+
+\begin{remark}
+    By ``stability", we mean if our solution originally does not blow up, then our scheme shouldn't blow up either.
+\end{remark}
+
+With the Euler's method, we found that
+\[\frac{u_{n+1}}{u_n} = R(h \lambda) = 1 + h\lambda\]
+where $R(z)$ is called the \textbf{Stability function} and the region
+\[\{z \in \Cbb: |R(z)| < 1\}\]
+is called the stability region.
+
+\begin{example}
+    The Euler scheme is stable for $|1 + z| < 1$. In other words they are the points
+    \[\includegraphics[width=0.5\linewidth]{Figures/lecture8/lec8-2.png}\]
+    We then see that if our Fourier coefficients are inside the circle, it is okay and stable. The problem really occurs when the Fourier coefficients exit the circle.
+\end{example}
+
+\textbf{The HOLY GRAIL} for us is to try to extend the region of stability to the left half plane $\{z \in \Cbb\ |\ \operatorname{Re}(z) < 0\}$.
+
+\begin{question}
+    What goes wrong with Euler?
+\end{question}
+
+Suppose we start with $f(t, \lambda) = \lambda$ and $\lambda << -1$, then consider the plot
+ \[\includegraphics[width=0.5\linewidth]{Figures/lecture8/lec8-3.png}\]
+At $t = 0$, the slope is very steep. If $h$ the time step is small, then it's fine. But if we have a big enough time step, it will have a large deviation at $t_1$. Then we want to go up again by a large margin. The problem is that the big time steps never lets Euler's method recover from this. Hence, this only works when $\lambda h$ is small (that is, it is in the region of convergence).\\
+
+We need to ``lift out eyes and see where we're going". Recall that Euler was based on the left hand endpoint rule that does not look ahead:
+\[\int_0^h g(t) dt \approx h g(0)\]
+whereas the Trapezoidal rule looks ahead:
+\[\int_0^h g(t) dt \simeq \frac{h}{2} [ g(0) + g(h) ]\]
+Our scheme now becomes
+\[u(t_{n+1}) = u(t_n) + \int_{t_n}^{t_{n+1}} f(s, u(s)) ds \]
+\[u_{n+1} = u_n + \frac{h}{2} [f(t_n, u_n) + f(t_{n+1}, u_{n+1})]\]
+
+Let's try to do a basic test for stability. We choose $f(t, u) = \lambda u$, then we have that
+\[u_{n+1} = u_n + \frac{h}{2} [\lambda u_n + \lambda u_{n+1}]\]
+Recall we defined the stability function as
+\[R(h\lambda) \coloneqq \frac{u_{n+1}}{u_n}\]
+Hence we have that
+\[\frac{u_{n+1}}{u_n} = \frac{1 + \frac{h\lambda}{2}}{1 - \frac{h\lambda}{2}} = R(h\lambda)\]
+Hence our stability function is
+\[R(z) = \frac{1 + z/2}{1 - z/2}\]
+Now we seek $z \in \Cbb$ such that $|R(z)| < 1$, which is satisfied if and only if $|1 + \frac{z}{2}| < |1 - \frac{z}{2}|$. This is the set of points that are closed to $-1$ than to $1$. In fact, this gives the entire left half plane!
+ \[\includegraphics[width=0.5\linewidth]{Figures/lecture8/lec8-4.png}\]
+
+\subsection{Crank-Nicolson Method}
+This scheme is called the \textbf{Crank-Nicolson Method}. Here are some remarks:
+\begin{enumerate}
+    \item This will be stable for One-Way Wave Equation. In fact $R(ikh) = 1$ so we have that $|c_k(t)|$ is a constant!
+    \item This will be stable for the Heat equation
+    \[\frac{\partial u}{\partial t} = \epsilon \Delta u, \text{ Eigenvalues are $-\epsilon k^2$}\]
+\end{enumerate}
+
+\begin{question}
+    What about the rate of convergence?
+\end{question}
+
+Let $e_n = |u(t_n) - u_n|$ be the error, then we have that
+\begin{align*}
+    e_{n+1} &= u(t_{n+1}) - u_{n+1}\\
+    &= (u(t_n) - u_n) + \int_{t_n}^{t_{n+1}} u'(s) ds - \frac{h}{2} [f(t_n, u_n) + f(t_{n+1}, u_{n+1})]\\
+    &=  (u(t_n) - u_n) + [\int_{t_n}^{t_{n+1}} u'(s) ds - \frac{h}{2} [u'(t_n) + u'(t_{n+1})]] + \frac{h}{2} [f(t_n, u(t_n)) + f(t_{n+1}, u_{n+1})] - \frac{h}{2} [f(t_n, u_n) + f(t_{n+1}, u_{n+1})]\\
+\end{align*}
+Estimating the second term using the Trapezoidal rule, by Peano's Kernel Theorem know that
+\begin{align*}
+    |\int_{t_n}^{t_{n+1}} u'(s) ds - \frac{h}{2} [u'(t_n) + u'(t_{n+1})]| &\leq \frac{1}{12} h^3 M_3
+\end{align*}
+where $M_3 = \max_{a \leq t \leq b} |u^{(3)}(t)|$. We will use Lipschitz to estimate the remaining terms, where
+\begin{align*}
+    \frac{h}{2} |f(t_n, u(t_n)) - f(t_n, u_n)| &\leq \frac{hL}{2} |u(t_n) - u_n| \tag*{$L$ is the Lipschitz constant}
+\end{align*}
+and furthermore we have
+\[\frac{h}{2} |f(t_{n+1}, u(t_{n+1})) - f(t_{n+1}, u_{n+1})| \leq \frac{hL}{2} |u(t_{n+1}) - u_{n+1}|\]
+Hence, combinging the terms gives us
+\[e_{n+1} \leq e_n + \frac{h^3}{12} M_3 + \frac{hL}{2} e_n + \frac{hL}{2} e_{n+1}\]
+\begin{itemize}
+    \item If $\frac{hL}{2} > 1$, then this tells me nothing.`
+    \item However, if $\frac{hL}{2} < 1$, then we combine like terms and get that
+    \[e_{n+1} \leq \frac{1 + \frac{hL}{2}}{1 - \frac{hL}{2}} e_n + \frac{h^3 M_3}{12 (1 -\frac{hL}{2})}, n = 0, 1, ...\]
+    \[ = R(hL) e_n + \frac{h^3 M_3}{12(1 - \frac{hL}{2})}\]
+\end{itemize}
+Let $S = \frac{h^3 M_3}{12(1 - \frac{hL}{2})}$, which we think of as a source term.\\
+
+Now we have that
+\[e_{n+1} \leq R e_n + S\]
+We observe that
+\[e_1 \leq S \text{ and } e_0 = 0\]
+\[e_2 \leq RS + S\]
+\[e_3 \leq R^2 S + R S + S\]
+By Ainsworth's Principle of Maximum Laziness, we have that by induction
+\[e_n \leq \frac{h^3 M_3}{12 (1 - \frac{hL}{2})} \frac{R(hL)^n - 1}{R(hL) - 1}\]
+
+We observe that
+\begin{align*}
+    R(hL)^n &= \left( \frac{1 + \frac{hL}{2}}{1 - \frac{hL}{2}} \right)^n\\
+    &= (1 + \frac{hL}{1 - \frac{hL}{2}})^n\\
+    &\leq \exp \{\frac{nhL}{1 - \frac{hL}{2}}\} \tag*{$(1 + r)^n \leq e^{nr}$}
+\end{align*}
+
+Now, we have arrived at a theorem.
+
+\begin{theorem}
+    Let $\{u_n\}_{n=0}^N$ be the output of Crank-Nicolson. If $u \in C^3[a, b]$ and $\frac{hL}{2} < 1$, then
+    \[\max_{0 \leq n \leq N} |u(t_n) - u_n| \leq \frac{h^2 M_3}{12 L} [\exp (\frac{L (b-a)}{1 - \frac{hL}{2}}) - 1]\]
+\end{theorem}
+
+\begin{remark}
+    This estimate is simialr to Euler but better ...
+    \begin{itemize}
+        \item We get second order convergence $O(h^2)$ if $u \in C^3[a, b]$.
+        \item We get a larger region of convergence!
+    \end{itemize}
+    But what happens if $u \in C^2[a, b]?$ That is this week's homework and more.
+\end{remark}
+
+This function looks good, but how can solve for $u_{n+1}$? Moreover, how do we know that the following functional equation is even solvable?
+\[u_{n+1} = u_n + \frac{h}{2} [f(t_n, u_n) + f(t_{n+1}, u_{n+1})]\]
+
+We would like a lemma to tell us this is well-defined.
+
+\begin{lemma}
+   Let $f$ be Lipschitz with constant $L$. If $\frac{hL}{2} < 1$, then Crank-Nicolson is well-defined. 
+\end{lemma}
+
+\begin{proof}
+    It suffices to show that for all $t \in [a, b]$ and $s \in \Rbb$, there exists some $r$ such that
+    \[r = s + \frac{h}{2} f(t, r)\]
+    We define a sequence
+    \[r^{i+1} = s + \frac{h}{2} f(t, r^i)\]
+    with $r^0$ given. We look at the difference between terms in the sequence, reminiscient to the proof of Picard's theorem,
+    \begin{align*}
+        r^{i+1} - r^i &= \frac{h}{2} [f(t, r^i) - f(t, r^{i-1})]\\
+        &\leq \frac{hL}{2} |r^i - r^{i-1}| \tag*{Lipschitz continuity}
+    \end{align*}
+    The rest follows as in the proof of Picard because $\frac{hL}{2} < 1$.
+\end{proof}
+
+Furthernore, the proof of this lemma tells us a possible method to solve for $(\dagger)$ where
+\[u_{n+1} = u_n + \frac{h}{2} [f(t_n, u_n) + f(t_{n+1}, u_{n+1})] \quad (\dagger)\]
+The proof suggests a way to solve this as
+\[\Tilde{u}^0 = \text{ initial guess } \]
+\[\Tilde{u}^{i+1} = u_n + \frac{h}{2} [f(t_n, u_n) + f(t_{n+1}, \Tilde{u}^i)], i = 0, 1, ...\]
+This is called the corrector. What should we choose for $\Tilde{u}^0$? We should choose
+\[\Tilde{u}^0 = u_n + h f(t_n, u_n) \quad (\text{Euler Predictor})\]
+
+We could either
+\begin{itemize}
+    \item (a) Correct to convergence (which we will do this for now).
+    \item (b) Stop after one step. Option (b) gives another method with
+\[\Tilde{u}_{n+1} = u_n + h f(t_n, u_n)\]
+\[u_{n+1} = u_n + \frac{h}{2} [f(t_n, u_n) + f(t_{n+1}, \Tilde{u}_{n+1})],\quad n = 0, 1, ...\]
+This is called \textbf{Heun's method}.
+\end{itemize}
+
+For (a), we sort of run into a predicament. We have an outer iteration that runs very effectively. We showed that the whole scheme works for the left half plane and can do some many amazing things, but to find $\Tilde{u}^{i+1}$ as an approximate iteration, the inner iteration only converges when $\frac{hL}{2} < 1$, which is the same constraint as Euler's method!\\
+
+We can resolve this by switching the inner iteration with another method. Fortunately, since we are workign with a speicfic $f$, we coudl fine tune into a more specific method. Consider
+\[\frac{\partial u}{\partial t} = \epsilon \frac{\partial^2 u}{\partial x^2} + \lambda u + g(t, u) \quad (\star)\]
+where $g$ is LIpschitz and $\epsilon  0$, $\lambda \geq 0$. When $g(t, u) = - \lambda u^2$, we get back Fisher's equation.\\
+
+We seek a $2\pi$-periodic solution again of the form
+\[u(x, t) = \sum_{k \in \Zbb} c_k(t) e^{ikx}\]
+We insert this into $(\star)$ and equate the Fourier coefficients to find
+\[\frac{d c_k}{dt} = (- \epsilon k^2 + \lambda) c_k + g_k(t, \Vec{c}), k \in \Zbb\]
+where $g_k(t, \Vec{c}) = \frac{1}{2\pi} \int_{-\pi}^{+\pi} g(t, u) e^{-ikx} dx$. We discretize in time using Crank-Nicolson, we have that
+\begin{align*}
+    c_k^{n+1} &= c_k^n + \frac{h}{2} [(-\epsilon k^2 + \lambda) c_k^n + g_k(t_n, \Vec{c}^n) + (-\epsilon k^2 + \lambda) c_k^{n+1} + g_k(t_{n+1}, \Vec{c}^{n+1})] \quad (\spadesuit)
+\end{align*}
+The lemma tells us that we get convergence if $h$ is sufficiently small. How small? Well the Lipschitz constant for the mapping gives
+\[r \mapsto (-\epsilon k^2 + \lambda) r + g_k(t, \Vec{r})\]
+Note that the LINEAR TERM here is responsivle for a big Lipschitz constant for it to be $O(k^2 \epsilon)$. The non-linear term does not contribute much. If we don't have the lienar term but keep $g_k$, we should be in buisness!\\
+
+Let's try a difficult rearrangement of the equation $(\spadesuit)$, let's combing like terms and find
+\begin{align*}
+    \{ 1 + \frac{k}{2} (\epsilon k^2 - \lambda)\} c_k^{n+1} &= c_k^n + \frac{h}{2} [(-\epsilon k^2 + \lambda) c_k^n + g_k(t_n, \Vec{C}^n) - g_k(t_{n+1}, \Vec{C}^{n+1}) ]\quad (\clubsuit)
+\end{align*}
+Now let's look at the scheme based on $(\clubsuit)$, which depends on the mapping
+\[r \mapsto \frac{-\frac{h}{2} g_k(t_{n+1}, \Vec{r})}{1 + \frac{h}{2} (\epsilon k^2 - \lambda)}\]
+which has the Lipschitz constant
+\[\frac{\frac{h}{2} L_g}{1 + \frac{h}{2} (\epsilon k^2 - \lambda)}\]
+This splits into 2 cases:
+\begin{enumerate}
+    \item If $\epsilon k^2 << 1$, then the term becomes
+    \[\frac{\frac{h}{2} L_g}{1 - \lambda h/ 2} < 1\]
+    \item If $\epsilon k^2 >> 1$, the term becomes
+    \[\frac{L_g}{\epsilon k^2} \lesssim 1\]
+\end{enumerate}
+
+We conclude that - the nonlinear inner iterations converges for $h$ sufficiently small and is independent of $\epsilon$ and $k^2$. Moreover, we should get no waves as $k \to \infty$. This should work without having to change time steps!\\
+
+This is called the \textbf{IMEX} method. The instructor then begins to give a demo of this.
 
 \end{document}
