@@ -1358,7 +1358,7 @@ We initialize the algorithm by setting $P = \{[a, b]\}$ and calling $\operatorna
 1. Find $\Delta_m \in P$ such that $\epsilon(\Delta_m) = \max_{\Delta \in P} \epsilon(\Delta)$\;
 2. Split $\Delta_m \to \Delta_L, \Delta_R$ where we break at the midpoint\;
 3. Let $\Tilde{P} = (P \setminus \Delta_m) \cup \{\Delta_L, \Delta_R\}$\;
-4. If $\sum_{\Delta \in \Tilde{P}} \epsilon(\Delta) \leq \leq TOL * \sum_{\Delta \in P} |Q(\Delta)|$ (TOL is some tolerance constant), then return $\sum_{\Delta \in \Tilde{P}} Q(\Delta)$\; Else, we call $\operatorname{SUBDIVIDE}(\Tilde{P})$;
+4. If $\sum_{\Delta \in \Tilde{P}} \epsilon(\Delta) \leq TOL * \sum_{\Delta \in P} |Q(\Delta)|$ (TOL is some tolerance constant), then return $\sum_{\Delta \in \Tilde{P}} Q(\Delta)$\; Else, we call $\operatorname{SUBDIVIDE}(\Tilde{P})$;
 \end{algorithm}
 \end{tcolorbox}
 
@@ -1415,5 +1415,236 @@ The proposed algorithm above eventually failed on $f(t) = 1/\sqrt{t}$ because it
     This is called \textbf{Richardson's Rule}. In general, you could do a similar Richardson extraction for any quadrature rule.
 \end{example}
 
+\newpage
+\section{Lecture 7}
+
+\subsection{Euler's Method}
+
+Let's consider the IVP
+\[\frac{du}{dt}(t) = f(t, u(t)), t \in [a, b]\]
+with the initial condition $u(a) = u_0$ where $f: [a, b] \times \Rbb^d \to \Rbb^d$ is continuous and Lipschitz in the second argument. In other words, we recall that there exists $L \geq 0$ such that
+\[|f(t, u) - f(t, v)| \leq L |u - v|, \forall u, v \in \Rbb^d.\]
+Thus, we are in the setting to aplly Picard's Theorem, and we have a unique solution satisfying the IVP.
+
+\begin{question}
+    How do we approximate the solution?
+\end{question}
+For far, we have been looking at a simpler setting where $f$ is not dependent of $u$ - this is why we had the whole discussion abotu quadratures in this class. Let's recall the proof of \textbf{Picard's Theorem} - it suggests that we write the problem in the form
+\[u(t) = u_0 + \int_a^t f(s, u(s)) ds, t \in [a, b]\quad (\star)\]
+This is easier for us to do for theory, so we will try to see how far we can get away with this.\\
+
+Let's introduction a partition in time $t$ into
+\[a = t_0 < t_1 < t_2 < .... < t_n = b\]
+We seek vectors $u_0, ..., u_n \in \Rbb^d$ such that 
+\[u(t_n) \simeq u_n\quad (\text{in some sense})\]
+
+Let's choose $t = t_1$ in $(\star)$, then we have that, by the proof of Picard's Theorem,
+\[u(t_1) = u_0 + \int_a^{t_1} f(s, u(s)) ds\]
+But the integral is generally difficult to integrate since we don't know what $u(s)$ is! Our previous work suggests that we approximate the integral using an appropriate rule.\\
+
+Let's say we want to use the trapezoidal rule, but we immediately run into problems! We don't know what $u(t_1)$ is! We only know that $u(a) = u_0$, so $f(a, u(a)) = f(a, u_0)$. Therefore, let's just use the Left-Hand Endpoint rule to approximate the integral - recall that
+\[\int_0^h g(s) ds \approx h g(0)\]
+By the Peano Kernel theorem, we know that
+\[\int_0^h g(s) ds = h g(0) + \frac{1}{2} h^2 g'(\xi), \text{ for some } \xi \in (0, h)\]
+Our scheme them becomes 
+\[u(t_1) \simeq u_1 = u_0 + (t_1 - t_0) f(t_0, u_0) \]
+
+In general, we get - for a given $u_0$,
+\[u_{n+1} = u_n + (t_{n+1} - t_n) f(t_n, u_n), n = 0, 1, ...., N-1\]
+Roughly speaking, we are given $(t_0, u_0)$ and we only look at the direction at $t_0$ to tell us where to go. Once you get to $t_1$, we look at the direction given by the gradient at the current location, rather than the true location.
+\[ \includegraphics[width=0.5\linewidth]{Figures/lecture7/lec7-1.png}\]
+This method is called \textbf{Euler's method}. This computes a set of values $\{u_n\}_{n=0}^N$ such that $u_n \simeq u(t_n)$.
+
+\begin{question}
+    Thus, this leads us to ask
+    \begin{itemize}
+        \item Does the scheme converge? In other words, can we show that
+        \[\max_{0 \leq n \leq N} |u_n - u(t_n)| \to 0 \text{ as } N \to \infty \text{ and / or } |t_{n+1} - t_n| \to 0\]
+        \item  If so, then at what rate does the convergence occur?
+    \end{itemize}
+\end{question}
+
+Let's consider a sequence of uniform partitions where $t_n = a +  n h$ where $n = 0, 1, ..., N$ and $h = \frac{(b-a)}{N}$. Consider the error at time $t_{n+1}$, which is $u(t_{n+1}) - u_{n+1}$.
+\begin{align*}
+    u(t_{n+1}) - u_{n+1} &= u(t_n) + \int_{t_n}^{t_{n+1}} f(s, u(s)) ds - u_n - h f(t_n u_n)\\
+    &= ( u(t_n) - u_n ) + \int_{t_n}^{t_{n+1}} f(s, u(s)) ds - h f(t_n, u_n)
+\end{align*}
+But the term $\int_{t_n}^{t_{n+1}} f(s, u(s)) ds - h f(t_n, u_n)$ is not really an approximation. If we apply the left hand rule on $\int_{t_n}^{t_{n+1}} f(s, u(s)) ds$, we should be getting $h f(t_n, u(t_n))$ rather than $h f(t_n, u_n)$. This isn't just quadrature error, it's a fundamental gap in approximation.\\
+
+We will instead rewrite the second term a sum of two terms:
+\[[\int_{t_n}^{t_{n+1}} f(s, u(s)) ds - h f(t_n, u(t_n))] + [h f(t_n, u(t_n)) - h f(t_n, u_n)] \]
+
+Now the term $\int_{t_n}^{t_{n+1}} f(s, u(s)) ds - h f(t_n, u(t_n))$ is a quadrature error! Let's consider each term as once\allowdisplaybreaks
+\begin{align*}
+    \int_{t_n}^{t_{n+1}} f(s, u(s)) ds - h f(t_n, u(t_n)) &= \int_{t_n}^{t_{n+1}} \frac{du}{ds}(s) ds - h \frac{du}{dt}(u_n) \tag*{Since $du/dt = f(t, u(t))$}\\
+    &= \frac{1}{2} h^2 \frac{d^2 u}{d t^2}(\xi_n) \tag*{Using the Remainder rule for LHR, for some $\xi_n \in (a, b)$}
+\end{align*}
+For the other term, we have
+\begin{align*}
+    h |f(t_n, u(t_n)) - f(t_n, u_n))| &\leq h L |u(t_n) - u_n| \tag*{Lipschitz Condition}
+\end{align*}
+
+Combining the two inequality / estimate, we have that
+\begin{align*}
+    |u(t_{n+1}) - u_{n+1}| &\leq (1 + hL) |u(t_n) - u_n| + \frac{1}{2} h^2 M_2 \tag*{where $M_2 = \max_{a \leq t \leq b} |\frac{d^2 u}{d t^2}(t)|$}
+\end{align*}
+This holds for all $n = 0, 1, ..., N-1$.\\
+
+Let $e_n = |u(t_n) - u_n|$, then we know that $e_0 = 0$ and $e_1 \leq \frac{1}{2} h^2 M_2$. Going down the list
+\begin{itemize}
+    \item $e_2 \leq (1 + hL) e_1 + \frac{1}{2} h^2 M_2$
+    \item $e_3 \leq (1 + hL) e_2 + \frac{1}{2} h^2 M_2$
+\end{itemize}
+The bound is getting bigger and bigger for higher $n$ and $e_n$. This does not seem promising. Now, we could bound this somewhat with
+\[e_2 \leq (1 + hL) e_1 + \frac{1}{2} h^2 M_2 \leq \frac{1}{2} h^2 M_2 \{1 + (1 + hL)\}\]
+\[e_3 \leq \frac{1}{2} h^2 M_2 \{1 + (1 + hL) + (1 + hL)^2\}\]
+In general we have that
+\[e_n \leq ... \leq \frac{1}{2} h^2 M_2 \sum_{j = 0}^{n-1} (1 + h L)^j, n = 1, 2, ..., N \]
+
+Computing this finite geometric sum, we have that
+\[e_n \leq \frac{1}{2} h^2 M_2 \frac{(1 + hL)^n - 1}{hL} \]
+
+Note that $1 + r \leq e^r$ for all $r$, so $(1 + r)^n \leq e^{nr}$, so we have
+\[e_n \leq \frac{M_2 h}{2L} \{e^{n hL} - 1\}\]
+
+Now, $nh = t_n - t_0$, so
+\[e^{nhL} = e^{L(t_n - a)}\]
+Hence we have that
+\begin{align*}
+    e_n &\leq \frac{h M_2}{2L} \{e^{L(t_n - a) - 1\}
+\end{align*}
+for $n = 0, 1, ..., N$. Thus, we have proven the following theorem:
+
+\begin{theorem}
+    Let $\{u_n\}$ be the output from Euler. If $u \in C^2[a, b]$, then
+    \[\max_{0 \leq n \leq N} |u(t_n) - u_n)| \leq \frac{h M_2}{2L} (e^{L(b-a)} - 1) \]
+    where $L$ is the Lipschitz constant for $f$ and $M_2 = \max_{a \leq t \leq b} |u''(t)|$.
+\end{theorem}
+
+\begin{remark}
+    We have that
+    \begin{enumerate}
+        \item The Theorem shows that the method is convergent. So
+        \[\lim_{N \to \infty} |u(t_n) - u_n| = 0, \forall n\]
+        and that the rate is $O(h) = O(N^{-1})$.
+        \item Suppose that $f(t, u) = \lambda u$, $a = 0$, and $b = T$, and $u(a) = u(0) = 1$. Hence we are solving that $u' = \lambda u$ with $u(0) = 1$, so $u(t) = e^{\lambda t}$. The Euler method reads as follows
+        \[u_{n+1} = u_n + h f(t_n, u_n) = u+n + \lambda h u_n = (1 + \lambda h) u_n\]
+        Hence, in general, Euler's method gives.
+        \[u_n = (1 + \lambda h)^n, n = 0, 1, ..., N\]On the other hand, $u(t_n) = e^{\lambda n h}$.  Recall that $h = \frac{T}{n}$, and note that
+        \[u_n = (1 + \frac{\lambda T}{N})^N \to e^{\lambda T} \text{ as $N \to \infty$}\]
+        \item Continuing the example, we find the Lipschitz constant $L = |\lambda|$ because
+        \[|f(t, u) - f(t, v)| = |\lambda u - \lambda v| = |\lambda| |u- v|\]
+        The true solution is $u(t) = e^{\lambda t}$, so
+        \[M_2 = \max_{0 \leq t \leq T} |u''(t)| = \max_{0 \leq t \leq T} |\lambda^2 e^{\lambda t}| \leq |\lambda^2| \max(1, e^{\lambda T})\]
+        Our error bound is therefore
+        \[h |\lambda|^2 \frac{1}{2 |\lambda|} \max(1, e^{\lambda T}) (e^{|\lambda| T} - 1)  \]
+        \[= \frac{h}{2} |\lambda|  \max(1, e^{\lambda T}) (e^{|\lambda| T} - 1)  \]
+        In comparision, the true error is
+        \[u(t_N) - u_N = e^{\lambda T} - (1 + \frac{\lambda T}{N})^N \geq 0\]
+        \item How tight is the bound? The following estimate will be helpful.
+\begin{lemma}
+    Let $\lambda \in \Rbb$ and $N \in \Nbb$. If $\frac{|\lambda| T}{N} < 1$, then we have
+    \[Q \coloneqq e^{-\lambda T} (1 + \frac{\lambda T}{N})^N \leq 1 - \frac{\lambda^2 T^2}{2N} + \frac{\lambda^3 T^3}{3N^2}\]
+\end{lemma}
+
+\begin{proof}
+    Suppose that $|\lambda| T < N$, then taking the natural log of $Q$ gives
+    \[\ln Q = - \lambda T + N \ln(1 + \frac{\lambda T}{N})\]
+    Doing the Taylor expansion, we have that
+    \[\ln Q = - \lambda T + N (\frac{\lambda T}{N} - \frac{1}{2} (\frac{\lambda T}{N})^2 + \frac{1}{3} (\frac{\lambda T}{N})^3 - ...)\]
+    \[\leq -\lambda T + N \{\frac{\lambda T}{N} - \frac{\lambda^2 T^2}{2N^2} - \frac{\lambda^3 T^3}{3 N^3}\}\]
+    This inequality is obvious when $\lambda < 0$ because the neglected terms are all negative. If $\lambda > 0$, $[-\frac{1}{2n} (\frac{\lambda T}{N})^{2n} + \frac{1}{2n+1} (\frac{\lambda T}{N})^{2n+1}]$are all negative whose modulous decreases monotonically.\\
+
+    Hence, we conclude that
+    \[\ln Q \leq -\frac{\lambda^2 T^2}{2N} + \frac{\lambda^3 T^3}{3N^2} < 0\]
+    Now taking an exponential on both sides and recalling that $e^{r} \leq 1 + r$ for $r < 0$, so we have
+    \[Q \leq 1 - \frac{\lambda^2 T^2}{2N} + \frac{\lambda^3 T^3}{3N^2}\]
+    \mattie{to be corrected by the instructor}
+\end{proof}
+Using the Lemma, we get that $u(t_n) - u_n = e^{\lambda T} (1 - Q) \geq e^{\lambda T} [\frac{\lambda^2 T^2}{2N} - \frac{\lambda^3 T^3}{3N^2}]$, which is approximately $e^{\lambda T} \frac{\lambda^2 T^2}{2N}$ when $\frac{|\lambda| T}{N} << 1$.\\
+
+We then consider two cases:
+\begin{itemize}
+    \item If $0 < \lambda T << 1$, the error bound in this case $(h = 1/N)$ is $\frac{\lambda T e^{\lambda T}}{2N} (e^{\lambda T} - 1) \simeq \frac{\lambda T}{2N} \lambda T = \frac{\lambda^2 T^2}{2N}$, so our bound is very tight in this case! This shows that our bound is sharp in this case.
+    \item If $\lambda < 0$, the error bound reads 
+    \[\frac{|\lambda| T}{N} (e^{|\lambda| T} - 1)\]
+    whereas the true error is
+    \[u(t_N) - u_N \simeq e^{\lambda T} \frac{\lambda^2 T^2}{2N}\]
+    Since $\lambda$ is negative, the true bound is tight, but the bound given by the Theorem explodes by a factor of $e^{|\lambda| T}  \frac{e^{|\lambda| T} - 1}{|\lambda T|} \sim \begin{cases}
+        1, \quad |\lambda| T << 1\\
+        \frac{e^{2|\lambda| T}}{|\lambda| T}, \text{ otherwise}
+    \end{cases}$
+\end{itemize}
+Hence, we cannot use it to estimate the error quantitatively. The problem comes from the Lipschitz constant,where we lose information on the sign.
+    \end{enumerate}
+\end{remark}
+
+Let's do an application. Recall Fisher's Equation is
+\[\frac{\partial u}{\partial t} = \epsilon \Delta u + \lambda u(1 - u), \epsilon, \lambda > 0\]
+Let's consider the 1D case so $\Delta u = \frac{\partial^2 u}{\partial x^2}$. Let's look for $2\pi$-periodic solutions in space, ie. of the form
+\[u(x, t) = \sum_{k \in \Zbb} c_k(t) e^{i k x}\]
+Note that $u(x + 2\pi ,t) = u(x, t)$ and $c_k(t)$ are functions of time.\\
+
+Substitute into the PDE and equate Fourier coefficients, and we have
+\[\frac{dc_k}{dt}(t) = - \epsilon k^2 c_k(t) + \lambda c_k(t) - \lambda  \frac{1}{2\pi} \int_{-\pi}^{+\pi} u(x, t)^2 e^{-i k x} dx \]
+
+Now for the last term, we know that
+\begin{align*}
+    \frac{1}{2\pi} \int_{-\pi}^{+\pi} u(x, t)^2 e^{-i k x} dx &= \frac{1}{2\pi} \sum_{\ell, m} c_\ell c_m \int_{-\pi}^{\pi} e^{i(\ell +m -k)x} dx\\
+    &= \sum_{\ell, m} c_\ell c_m \delta_{\ell + m, k} \tag*{Dirac Delta Function}\\
+    &= \sum_\ell c_\ell c_{k-\ell}\\
+    &= (c \star c)_k \tag*{Convolution}
+\end{align*}
+Hence, the $c_k$'s satisfy
+\[\frac{dc_k}{dt}(t) = - \epsilon k^2 c_k + \lambda c_k - \lambda (c \star c)_k\]
+This is an infinite system ODE, so we will \textbf{truncate} by setting $c_k = 0$ if $|k| > K$.
+\begin{itemize}
+    \item If $K = 0$, then only $c_0$ is non-zero, and we ahve
+    \[\frac{d c_0}{dt} =  \lambda c_0 - \lambda (c \star c)_0\]
+    Furthermore, $(c \star c)_0 = \sum_{\ell} c_\ell c_{-\ell} = c_0^2$, so
+    \[\frac{dc_0}{dt} = \lambda c_0 (1 - c_0)\]
+    is just the Logistic equation.
+
+    \item If $K = 1$, $\{c_{-1}, c_0, c_1\}$ are all non-zero, in this case,
+    \[(c \star c)_k = \sum_{\ell = -1}^{+1} c_\ell c_{k - \ell} \]
+    One can work out that 
+    \[(c \star c)_k  = \begin{cases}
+        2 c_0 c_{-1}, k = -1\\
+        c_0^2 + 2 c_1 c_{-1}, k = 0\\
+        2 c_0 c_1, k = 1
+    \end{cases}\]
+    Hence our system becomes
+    \[\begin{cases}
+        \frac{dc_{-1}}{dt} = (-\epsilon +\lambda) c_{-1} - 2 \lambda c_{-1} c_0\\
+        \frac{dc_0}{dt} = \lambda c_0 - \lambda (c_0^2 + 2 c_1 c_{-1})\\
+        \frac{dc_1}{dt} = (-\epsilon + \lambda) c_1 - 2 \lambda c_1 c_0
+    \end{cases}\]
+\end{itemize}
+
+The instructor now presents a code demo of solving Fisher's equation with Euler's method. Now we will do some stability analysis of what happened. Numerical evidence shows us:
+\begin{itemize}
+    \item The Euler method sometimes works and sometimes blows up.
+    \item This behavior persists even without the non-linear term. In this case, if we assume all the convolutions are zero, we get that
+    \[\frac{dc_k}{dt} = (1 - \epsilon k^2) c_k,\quad \text{ no coupling}\]
+    The Euler method of the equation becomes
+    \[c_k^{n+1} = c_k^n + h(\lambda - \epsilon k^2) c_k^n = (1 + z) c_k^n, z = h(\lambda - \epsilon k^2)\]
+    Thus we have that $c_k^n = (1 + z)^n c_k^0$
+    \item But we observe that this error blows up when $|1 + z| > 1$!
+    \item The condition for it to not blow up is when $-1 < 1 + z < +1$, which holds if and only if
+    \[-2 < h(-\epsilon k^2 + \lambda) < 0\]
+\end{itemize}
+
+Hence 
+\begin{enumerate}
+    \item If we fix $\epsilon = 1$; $h = 1/10$. In this case, the approximation is stable if and only if
+    \[-2 < \frac{1}{10} (-k^2 + 1) < 0\]
+    A necessary condition for this is $k^2 < 21$, so $k < 5$. This agrees with our numerical results, when $k = 5$, the system blew up.
+    \item For reduced $h$, if we consider $h = \frac{1}{20}$, we find that the system is stable if and only if $k^2 < 41$.
+\end{enumerate}
+Each time, we see that large / higher frequencies on $k$ makes Euler's method unstable.\\
+
+The conclusion is that Euler's method is fine for certain problems (e.g. $K = 0$) and for $K = 1, 2, 3, 4$, but it becomes unstable when $K^2 h$ is too large.\\
+
+There's a balance between the choice of $\epsilon$ and $K$. Smaller $\epsilon$ makes $K$ better, but it makes the Euler method worse. Large $K$ makes spatial resolution better, but you start hacing problems with the $\epsilon$. \mattie{confirm??} There are different spatial resolutions fighting each other.
 
 \end{document}
