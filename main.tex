@@ -1910,4 +1910,242 @@ We conclude that - the nonlinear inner iterations converges for $h$ sufficiently
 
 This is called the \textbf{IMEX} method. The instructor then begins to give a demo of this.
 
+\newpage
+\section{Lecture 9}
+
+\subsection{Debugging and Choosing Numerical Schemes}
+
+Last week, even though we said the program theoretically shouldn't break with any number of nodes, it broke with $100$ nodes. Why is that?\\
+
+Let's investigate. We consider the equation
+\[\frac{du}{dt} = \lambda u (1 - u) = f(u).\]
+From a dynamical systems perspective, the equilibriums looks like
+\[\includegraphics[width=0.6\textwidth]{Figures/lecture9/lec9-1.png}\]
+This means we have an unstable equilibrium. If $u$ starts off very negative and far away from the stable equilibrium, this would diverge!\\
+
+When we consider Fisher's equation, we have that
+\[\frac{\partial u}{\partial t} = \epsilon \frac{\partial^2 u}{\partial t^2} + \lambda u(1 -u )\]
+The nonlinear term does not break the program, but the problem was that the initial condition was too big! WHen we picked $100$ Fourier nodes, we have that $u(x, t) = \sum_{|k| \leq 100} c_k(t) e^{ikx}$ and $||u(\bullet, )||^2 = \sum_{|k| \leq 100} |c_k|^2$ will be large and indicate that the initial condition will slide off away from the stable solution.\\
+
+Hence, we should try to rescale our coefficients
+\[c_k \sim \frac{U[0, 1]}{\sqrt{1 + k^2}}, |c_k|^2 \sim \frac{1}{1+k^2}\]
+which should be more stable.\\
+
+For last week's homework, there's a lot of \textbf{controversy} over whether Fourier and Finite Difference is better than one another. Here's some misinformation.
+\begin{enumerate}
+    \item ``Fourier is only good for periodic" - this is actually not the case. While in class we only considered $u(0, t) = u(\pi, t)$. This could work for any boundary conditions.\\
+    
+    For example, if we suppose instead want to solve equations with boundary condition $u(0, t) = u(2\pi, t) = 0$. In this case, we can consider $u(x, t) =\sum_k c_k e^{ikx} = a_0 + \sum a_k \cos k x + b_k \sin kx$. If we set $a_0 = 0$ and $a_k = 0$, we get $u(x, t) = \sum_k b_k \sin k x$ which could work to be extended to $0$ to $2\pi$.\\
+
+    For another example, if we consider $\frac{\partial u}{\partial x}(0, t) = \frac{\partial u}{\partial x}(2\pi, t) = 0$, then in this case we seek equations are the form $u(x, t) = a_0 + \sum a_k \cos k x$.
+
+    \item ``Finite differences are only good for Dirichlet conditions" - you can still do periodic with Difference methods as well. You just start by renaming the coefficients when they start to repeat:
+\[\includegraphics[width=0.6\textwidth]{Figures/lecture9/lec9-2.png}\]
+\end{enumerate}
+
+So what are the actual valid differences?
+\begin{enumerate}
+    \item The Fourier method does converge a lot faster than Finite Differences. We sketch the idea here.\\
+    
+    If we consider $u(x) = \sum_{k \in \Zbb} c_k e^{ikx}$ and $u_K(x) = \sum_{|k| \leq K} c_k e^{ikx}$, then we see that
+    \[u(x) - u_k(x) = \sum_{|k|>K} c_k e^{ikx}\]
+    On the other hand, we have that
+    \[u_{xx} \simeq \frac{u(-r) - 2 u(0) + u(r)}{r^2} + O(r^2) u_{xxxx}\]
+    Hence in terms of the Fourier coefficients, we know that
+    \[u^{(4)}(x) = \sum_k (ik)^4 c_k e^{ikx} \]
+    \[||u^{(4)}||^2 = \sum_k |k|^8 |c_k|^2 < \infty \implies c_k \sim k^{-4}\]
+    Thus, the Fourier method converges at a rate of $k^{-4}$ as opposed to finite difference, which is around $k^{-2}$.
+    \item Fourier series play nicely with differentiable operators. If we for example consider
+    \[-\epsilon \frac{\partial^2 u}{\partial x^2} + b \frac{\partial u}{\partial x} + c u\]
+    Then the homework allowed us to discrete this into a tridiagonal matrix $A$. But each time you want to move on in a time step, it couples nodes together. You would have to invert the tirdiagonal matrix and takes extra annoying working.\\
+
+    On the other hand, if we do the Fourier method, the nodes aren't coupled together, and there's no matrices to invert here.
+    \item On the other hand, there's a lot of convolutions to compute in the Fourier method which complicates the method. The discretization of derivatives into linear equations is a lot easier to compute. Nevertheless, the convolution is closer to the physics and gives a better idea on how the non-linearity works. For the example of Fisher's equation, we have that
+    \[\frac{\partial u}{\partial t} = \epsilon \frac{\partial^2 u}{\partial x^2} + \lambda u - \lambda u^2 \]
+    the terms $\epsilon \frac{\partial^2 u}{\partial x^2} + \lambda u$ are not mixing different frequencies. If we look at what's happening with the last term, we are looking at
+    \[u \mapsto \frac{1}{2\pi} \int_{-\pi}^{\pi} u(x, t)^2 e^{-ikx} dx, k \in \Zbb\]
+    \[\int (\sum_m c_m(t) e^{imx} ) (\sum_\ell c_\ell(t) e^{i\ell x}) dx = \sum_{\ell + m} c_m c_\ell \int e^{i(m + \ell - k)x}\]
+    which is the direct delta function on $m + \ell = k$, hence the sum is
+    \[= \sum c_m c_{k - m}.\]
+    Hence Fourier conveys you an insight into the mixing of frequencies.
+    \item The downside of Fourier is that it only works in tensor product domains, in the sese that it's of the form $[a_1, b_1] \times [a_2, b_2] \times ... \times [a_d, b_d]$. But if we have a domain like a Pac-Man, the Fourier method has no hope on it. Neither would finite difference work (where are you even gonna put the nodes properly). In this case, we need something like a finite element method, more to see in 2560.
+    \item The Fourier transform diagnalizes differentiation.
+\end{enumerate}
+
+\begin{remark}
+Historically, finite difference methods came first. Even the Euler method is an example of finite difference methods. Up to about the 1940s or 1950s, the finite difference methods have been the standard. The U.S. government also implemented a lot of code and machines strictly with the framework of finite differences methods.\\
+
+In about 1970s, finite element methods came along. Embarrassingly, the engineers were the first to realize that they are good. Nowadays, finite element methods became the mainstream and pretty much everyone uses them.
+\end{remark}
+
+\subsection{Heun's Method - Two Step Runge Kutta Methods}
+
+For the Crank-Nicolson method, we were considering the scheme
+\[u_{n+1} = u_n + \frac{1}{2} h \{f(t_n, u_n) + f(t_{n+1}, u_{n+1})\}\]
+is based on the Trapezoidal Rule. This is attractive because:
+\begin{itemize}
+    \item The stability region is the left-half plane (which we call it to be ``\textbf{A-stable}", meaning absolute stability).
+    \item It is second order accurate.
+\end{itemize}
+It is unattractive possibly because 
+\begin{itemize}
+    \item It is implicit, because we need to solve $u_{n+1}$ in a non-linear system of equation, which is generally difficult. The RHS dpeends on the LHS.
+\end{itemize}
+
+\begin{question}
+    Is there a related EXPLICIT scheme that retains the advantages of being A-stable and second order accurate?
+\end{question}
+
+Last time, we discovered \textbf{Heun's method} based on an explicit forward Euler predictor, where we say
+\[u_{n+1} \simeq \Tilde{u}_{n+1} = u_n + h f(t_n, u_n)\]
+We can get $\Tilde{u}_{n+1}$ explicitly, for which we then define
+\[u_{n+1} \coloneqq u_n + \frac{h}{2} [f(t_n, u_n) + f(t_{n+1}, \Tilde{u}_{n+1})].\]
+
+We have made the method explicit now, but the danger here is that we might lose a second order accuracy and no longer A-stable. Let's try to write this as an Algorithm:
+\begin{tcolorbox}[standard jigsaw,opacityback=0]
+\begin{algorithm}[H]
+\caption{Heun's Method (Explicit Runge-Kutta 2)}
+\KwData{$u_0 = u(a);$ and $f$}
+\KwResult{The tuples approximating $(t_k; u(t_k))_{k = 0}^n$}
+1. for $n = 0, 1, ..., N-1$, we compute $\{$\;
+1a. $k_1 = f(t_n, u_n)$\;
+1b. $k_2 = f(t_n +h, u_n + h k_1)$\;
+1c. $u_{n+1} = u_n + \frac{h}{2} [k_1 + k_2]$$\}$\;
+2. \text{// where $t_n = a + nh, h = \frac{b-a}{N}$}
+\end{algorithm}
+\end{tcolorbox}
+
+\begin{question}
+    What are its mathematical properties?
+\end{question}
+
+Let's start by looking at its stability. We consider the equation
+\[\frac{du}{dt} = \lambda u, \lambda \in \Cbb, \text{ so } f(t, u) = \lambda u.\]
+The scheme proceeds as follows:
+\begin{itemize}
+    \item We see that $h k_1 = h f(t_n, u_n) = h \lambda u_n$.
+    \item It then follows that $h k_2 = h \lambda(u_n + h k_1) = h \lambda (1 + h \lambda ) u_n$.
+\end{itemize}
+We then see that
+\begin{align*}
+    \frac{u_{n+1}}{u_n} &= 1 + \frac{1/2(h k_1 + h k_2)}{u_n}\\
+    &= R(h\lambda)
+\end{align*}
+where $R(z) = 1 + z + \frac{1}{2} z^2$.
+
+\begin{remark}
+We recall what the stability functions for other approximation methods are:
+\begin{enumerate}
+    \item Euler-Scheme: $R(z) = 1 + z$.
+    \item Crank-Nicolson: $R(z) = \frac{1 + z/2}{1 - z/2}$.
+    \item Heun's Method: $R(z) = 1 + z + \frac{z^2}{2}$
+\end{enumerate}
+which are all roughly exponential approximating $e^z$. This phenonmenon is called \textbf{Padé Approximation}. 
+\end{remark}
+
+The stability region for Heun's method is $\{z \in \Cbb: |R(z)| < 1\}$. This is clearly not A-stable because as $|z| \to \infty$, $|R(z)|$ will go to infinity. Let $z$ belong to the stability region for Euler, ie. $|1 + z| \leq 1$, then 
+\begin{align*}
+    |R(z)| &= |1 + z + \frac{1}{2} z^2|\\
+    &= |\frac{1}{2} (z + 1)^2 + \frac{1}{2}|\\
+    &\leq \frac{1}{2} |1 + z|^2 + \frac{1}{2}\\
+    &\leq 1
+\end{align*}
+This shows that Heun's method has a stability regio that contains Euler's stability region!\\
+
+This is approximately what the stability region of Heun's method (outer) compare to Euler's method (inner):
+\[\includegraphics[width=0.6\textwidth]{Figures/lecture9/lec9-3.png}\]
+
+\begin{question}
+Now, does Heun's method retain the second order accuracy of Crank-Nicolson?
+\end{question}
+
+Let's write Heun's method as follows:
+\begin{itemize}
+    \item Let $v_1 = u_n$ and $v_2 = u_n + h f(t_n, u_n)$
+    \item $v_1$ is an approximation of $u(t_n)$ and $v_2$ is an approximation of $u(t_{n+1})$.
+    \item Heun's step tells us to do
+    \[u_{n+1} = u_n + \frac{h}{2} \{f(t_n, v_1) + f(t_{n+1}, v_2)\}\]
+\end{itemize}
+Now, let $e_n = |u(t_n) - u_n|$, then we have that
+\begin{align*}
+    u(t_{n+1}) - u_{n+1} &= u(t_{n}) + \int_{t_n}^{t_{n+1}} f(s, u(s)) ds - u_n -  \frac{h}{2} \{f(t_n, v_1) + f(t_{n+1}, v_2)\}\\
+    &= [u(t_n) - u_n] + [\int_{t_n}^{t_{n+1}} u'(s) ds - \frac{h}{2} \{u'(t_n) + u'(t_{n+1})\}] + \frac{h}{2} \{f(t_n, u(t_n)) - f(t_n, v_1)\}\\&+ \frac{h}{2} \{f(t_{n+1}, u(t_{n+1})) - f(t_n, v_2)\} \tag*{Add Zero}
+\end{align*}
+The second term is the error in using Trapezoidal rule bounded by $\frac{1}{12} h^3 M_3$. The remaining terms estimated using the Lipschitz property gives
+\[\frac{1}{2} h L |u(t_n) - v_1| \text{ and } \frac{1}{2} hL |u(t_{n+1}) - v_2|\]
+First one is just $\frac{1}{2} h L e_n$. The second one is new to us and we have
+\begin{align*}
+    u(t_{n+1}) - v_2 &= u(t_{n+1}) - (u_n + h f(t_n, u_n))
+\end{align*}
+This reminds us of the error term for the Euler-scheme, so let's argue as we did for Euler. What we then get is that
+\begin{align*}
+    u(t_{n+1}) - v_2 &= u(t_n) - u_n + \int_{t_n}^{t_{n+1}} u'(s) ds - h u'(t_n) + h \{f(t_n, u(t_n) - f(t_n, u_n)\}
+\end{align*}
+Estimating this using the Left Hand End Point Ruler, we have that
+\[|u(t_{n+1}) - v_2| \leq e_n + \frac{1}{2} h^2 M_2 + hL e_n\]
+
+Combining everything together, we obtain that
+\[e_{n+1} \leq e_n \{1 + \frac{1}{2} hL + \frac{1}{2} hL + \frac{1}{2} (hL)^2\} + \frac{1}{12} h^3 M_3 + \frac{1}{2} hL (\frac{1}{2} h^2 M_2)\]
+\[= R(hL) e_n + \frac{1}{12} h^3 \{M_3 + 3 L M_2\}\]
+
+Solving as usual gives
+\[e_n \leq \frac{R(hL)^n - 1}{R(hL) - 1} \frac{h^3}{12} (M_3 + 3 L M_2),  n = 0, 1, ...\]
+
+Now, we have that
+\begin{align*}
+    R(hL) &= 1 + hL + \frac{1}{2} (hL)^2\\
+    &\leq e^{hL}
+\end{align*}
+and $R(hL) - 1 = hL (1 + \frac{1}{2} hL)$. Finally, we obtain a theorem:
+
+\begin{theorem}
+    Let $\{u_n\}_{n = 0}^N$ be the outputs of Heun's method with $h = \frac{b - a}{N}$, then we have that
+    \[\max_{0 \leq n \leq N} |u(t_n) - u_n| \leq \frac{h^2}{12L} \frac{M_3 + 3 L M_2}{1 + \frac{1}{2} hL} \{e^{L(b-a)} - 1\}\]
+\end{theorem}
+
+In conclusion, even though Euler forms part of Heun's method, it doesn't pollute or reduce the order of accuracy. However, it has a much smaller region of stability compared to Crank-Nicolson. 
+
+\subsection{Alternative Derivation of Heun's Method}
+The plot twist is that the above proof is not usually how textbooks do it. This is how textbooks usually do it. Consider the scheme having the general form
+\[u_{n+1} = u_n + h \{b_1 f(t_n, u_n) + b_2 f(t_{n} + ch, u_n + a h f(t_n, u_n))\}\]
+where $b_1, b_2, c, a$ are all to be determined. Heun's method corresponds to $c = 1, a = 1, b_1 = b_2 = \frac{1}{2}$, but can we do better with different choices?\\
+
+Assuming that everything is smooth, we can try a wild Taylor expansion and see that
+\begin{align*}
+    f(t_n + ch, u_n + ah f(t_n, u_n)) &= f(t_n, u_n) + h \{c \frac{\partial f}{\partial t}(t_n, u_n) + a f(t_n, u_n) \frac{\partial f}{\partial u}(t_n, u_n)\} + h^2 \{a \frac{\partial^2 f}{\partial t \partial u} (t_n, u_n) + ...\} + O(h^3)
+\end{align*}
+So the scheme satisfies
+\[u_{n+1} = u_n + h (b_1 + b_2) f(t_n, u_n) + h^2 b_2 \{c \frac{\partial f}{\partial t}(t_n, u_n) + a f(t_n, u_n) \frac{\partial f}{\partial u}(t_n, u_n) \} + O(h^3)\]
+Now we compare this with the Taylor series of the true solutions, that is
+\[u(t_{n+1}) = u(t_n) + h u'(t_n) + \frac{1}{2} h^2 u''(t_n) + O(h^3)\]
+\[ = u(t_n) + h f(t_n, u(t_n)) + \frac{1}{2} h^2 [\frac{d}{dt} f(t, u(t))]|_{t=t_0} + O(h^3)\]
+where $\frac{d}{dt} f(t, u(t)) = \frac{\partial f}{\partial t}(t, u(t)) + u'(t) \frac{\partial f}{\partial u}(t, u(t)) =  \frac{\partial f}{\partial t}(t, u(t)) + f(t, u(t)) \frac{\partial f}{\partial u}(t, u(t))$.\\
+
+Comparing the coefficients of terms between the true solution and the scheme, we see that
+\begin{itemize}
+    \item $b_1 + b_2 = 1$
+    \item $c b_2 = \frac{1}{2}$
+    \item $a b_2 = \frac{1}{2}$
+\end{itemize}
+Solving the $3$ non-linear equations, now the scheme is therefore 
+\[u_{n+1} = u_n + h \{(1 - \theta) f(t_n, u_n) + \theta f(t_n + \frac{h}{2 \theta}, u_n + \frac{h}{2 \theta} f(u_n, t_n)\} \]
+Heun chooses $\theta = \frac{1}{2}$. Clearly this decays at rate of $h^2$ because of how the Taylor series compare.
+
+\begin{remark}
+    The same argument can be used for any order, but gets quite messy. For example, for order $9$, we end up with $486$ non-linear equations.
+\end{remark}
+
+There still remains a question - is our new $\theta$-scheme better than Heun? We already know they have the same order of accuracy, but may be there's a bigger stability region?\\
+
+Let's try to do a stability analysis. Let $f(t, u) = \lambda u$ with $\lambda \in \Cbb$, so we have that
+\[\frac{u_{n+1}}{u_n} = 1 + (1 - \theta) h \lambda + \theta h \lambda (1 + \frac{h \lambda}{2 \theta}) = 1 + h \lambda + \frac{1}{2} (h \lambda)^2\]
+which is independent of $\theta$!\\
+
+The instructor then proceeded to give a demo of Heun's method.\\
+
+The demo suggested that rather than a uniform grading using Heun's method, maybe we should try to look for an adaptive method. Why don't we try to compare the error estimator between the difference of the two terms
+\[v_2 = u_n + h f(t_n,u_n) = u(t_{n+1}) + O(h^2)\]
+\[u_{n+1} = u_n + .... = u(t_{n+1}) + O(h^3)\]
+We will think more about this next lecture.
+
 \end{document}
