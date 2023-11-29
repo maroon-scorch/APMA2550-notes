@@ -2148,4 +2148,202 @@ The demo suggested that rather than a uniform grading using Heun's method, maybe
 \[u_{n+1} = u_n + .... = u(t_{n+1}) + O(h^3)\]
 We will think more about this next lecture.
 
+\newpage
+\section{Lecture 10}
+
+\subsection{Explicit Runge Kutta}
+
+Last time, we discussed extensively about Heun's method, we found that it is
+\begin{itemize}
+    \item second order accurate.
+    \item has better region of stability than Euler's method.
+\end{itemize}
+The question we look at today is
+\begin{question}
+    Can we find methods of even higher accuracy?
+\end{question}
+
+To do this, we first need to understand why Heun's method only works for second order. We consider two cases here:
+\begin{enumerate}
+    \item Let's suppose that $f(t, u) = g(t)$ is independent of $u$, then we try to solve $u'(t) = g(t)$. In this case, we have that
+    \[u_{n+1} = u_n + \frac{h}{2} \{g(t_n) + g(t_{n+1})\}, n = 0, 1, ... \]
+    This is \textbf{Heun's method for two IVP}. In other word, we just did trapezoidal rule which is locally $O(h^3)$, and globally this will be $O(h^2)$, so second order.\\
+
+    In conclusion, Heun's method is second order accurate because its based on a locally $O(h^3)$ quadrature rule.
+    \item Suppose $f(t, u) = \lambda u, \lambda \in \Cbb$ is independent of $t$. We have already calculated this example before, and in this case we have that
+    \[u_{n+1} = R(h \lambda) u_n\]
+    where $R(z) = 1 + z + \frac{z^2}{2}$ for Heun's method. Thus, we have that $u_n = R (h \lambda)^n$ if $u(t_0) = 1$. We can compare this with the true solution $u(t_n) = e^{\lambda t_n}$ where $t_n = nh + t_0$. Looking at the error, we see that
+    \begin{align*}
+        e(t_n) &= u(t_n) - u_n\\
+        &= (e^{\lambda h})^n - R(\lambda h)^n\\
+        &= (e^{\lambda h} - R(\lambda h)) \sum_{j = 0}^{n-1} e^{\lambda h j} R(h \lambda)^{n - 1 - j}
+    \end{align*}
+    Assuming that $h\lambda$ is small enough (which is okays ince we looking at convergence), we have that $(e^{\lambda h} - R(\lambda h)) \sim \frac{1}{3!} (h\lambda)^3$. On the other hand $ e^{\lambda h j} R(h \lambda)^{n - 1 - j} \approx n \cdot e^{n \lambda h - \lambda h}$. The $n$ here cancels out with an extra rate of $h$, overall our error is roughly
+    \[\frac{1}{3!} (h\lambda)^3 n \cdot e^{n \lambda h - \lambda h} \approx \frac{1}{3!} (nh) \lambda^3 h^2 e^{\lambda t_n} \approx O(h^2)\]
+    The second conclusion is that Heun's method is second order here because the stability function $R(z)$ is a third order approximation of $e^z$.
+\end{enumerate}
+
+Thus, to find a better method for approximation, we need to do two things
+\begin{itemize}
+    \item 1. Find a better quadrature rule.
+    \item 2. Ensure the region of stability approximates $e^z$ better.
+\end{itemize}
+
+Let's then try to develop a third order method, called \textbf{Third Order Runge Kutta Method}? To finda better quadrature rule than trapezoidal rule, we can try to have a scheme on Simpson's Rule where we have 
+\[\int_0^h g(t) dt \approx \frac{h}{6} \{g(0) + 4 g(h/2) + g(h)\}\]
+By Peano's Kernel Theorem, we can work out that
+\[\int_0^h g(t) dt = \frac{h}{6} \{g(0) + 4 g(h/2) + g(h)\} - \frac{h^5}{90} g^{(4)}(\xi)\]
+In other words, this is locally $O(h^5)$ and glovally $O(h^4)$. This suggests a method of the form
+\[u_{n+1} = u_n + \frac{h}{6} \{f(t_n, v_1) + 4 f(t_n + \frac{h}{2}, v_2) + f(t_{n-1} + h, v_3)\}\]
+where $v_1 \simeq u(t_n)$, $v_2 \simeq u(t_n + \frac{h}{2})$, $v_3 \simeq u(t_n + h)$.\\
+
+How should we choose the $v's$? Well, we know what $t_n, u_n, f(t, \bullet)$ are. \\\\
+\textbf{First Try:}
+
+Let $v_1 = u_n$. Let know the slope $k = f(t_n, u_n)$ at $(u_n, t_n)$, so we draw a line from the point and call
+    $$u(t_n + \frac{h}{2}) \simeq v_2 = u_n + \frac{h}{2} k_1 $$
+    Finally, for $u(t_n + h)$, we can get that
+    $$u(t_n + h) \simeq v_3 = u_n + h k_1$$
+    In other words, we did two forward Euler predictions.
+    \[\includegraphics[width=0.6\textwidth]{Figures/lecture10/lec10-1.png}\]
+    With out new method, we have that
+    \[u_{n+1} = u_n + \frac{h}{6} \{f(t_n, u_n) + 4 f(t_n + h/2, u_n + 1/2 h k_1) + f(t_n + h, u_n + h k_1) \}\]
+    \[ = u_n + \frac{h}{6} \{k_1 + 4 f(t_n + h/2, u_n + 1/2 h k_1) + f(t_n + h, u_n + h k_1) \} \]
+    This constitutes to $O(h^5)$ from quadrature rule, but what about $R(z) \simeq e^z$?\\
+
+    Hence, we try to compute the \textbf{region of stability} for $R(z)$. Choose $f(t, u) = \lambda u$, $\lambda = \Cbb$, $z = \lambda h \in \Cbb$. In this case, we know that $v_1 = u_n$,and also that $$h k_1 = h f(t_n, u_n) = h \lambda u_n = z u_n (\spadesuit)$$ (\textbf{REMEMBER THIS LATER}).\\
+    
+    We also have that $v_2 = u_n + \frac{1}{2} h k_1 = (1 + \frac{1}{2} z) u_n$, and by a similar calculation as in $(\spadesuit)$, $h k_2 = h f(t_n + \frac{h}{2}, v_2) = z (1 + \frac{1}{2} z) u_n$.\\
+
+    We also have that $v_3 = u_n + h k_1 = (1 + z) u_n$, so $h k_3 = z (1 + z) u_n$. Thus, we have that
+    \[R(z) u_n = u_{n+1} = u_n + \frac{1}{6} \{h k_1 + 4 h k_2 + h k_3\} = \{1 + \frac{1}{6} (z + 4z (1 + \frac{1}{2} z) + z(1+z) \} u_n\]
+    \[= \{1 + z + \frac{z^2}{2}\} u_n\]
+    Thus, we have that $R(z) = 1 + z + \frac{z^2}{2}$, but this means it is still globally $O(h^2)$!\\
+
+    This method is \textbf{fundamentally flawed} because the $hk$'s are not generating any $z^3$ terms, so it will never have faster convergence. We need to use $f$ more often.
+\begin{remark}
+    The instructor's birthday is on $\pi$-day.
+\end{remark}
+
+\textbf{Second Try: } Let's take $v_1 = u_n$ again, so we compute $h k_1 = f(t_n, u_n)$. What should $v_2$ be? We can't imagine anything better than writing down one forward Euler
+\[v_2 = u_n + \frac{1}{2} h k_1, \text{ so } h k_2 = f(t_n + \frac{h}{2}, v_2).\]
+Now for $v_3$, we will write it as
+\[v_3 = u_n + h \{(1 - \alpha) k_1 + \alpha k_2\} \]
+where $\alpha$ is to be determined. The underlying quadrature rule will still give $O(h^5)$. Let's look at the stability function where $f(t, u) = \lambda u$,
+\begin{align*}
+    v_1 &= u_n\\
+    h k_1 &= z u_n\\
+    v_2 &= (1 + \frac{1}{2}z) u_n\\
+    h k_2 &= z (1 + \frac{1}{2}z) u_n\\
+    v_3 &= (1 + (1-\alpha) z + \alpha z (1 + z/2)) u_n
+\end{align*}
+To simplify $v_3$, we have that
+\begin{align*}
+    v_3 &= (1 + z + \frac{1}{2} \alpha z^2) u_n\\
+    h k_3 &= z (1 + z + \frac{1}{2} \alpha z^2) u_n
+\end{align*}
+Hence, we have that
+\begin{align*}
+    R(z) u_n &= u_{n+1}\\
+    &= \{1 + \frac{1}{6} (z + 4 z (1 + \frac{1}{2} z) + z (1 + z + \frac{1}{2} \alpha z^2)) \} u_n\\
+    &= \{1 + z + \frac{1}{2} z^2 + \frac{1}{12} \alpha z^3\} u_n
+\end{align*}
+When we choose $\alpha = 2$, we have that
+\[R(z) =  \{1 + z + \frac{1}{2} z^2 + \frac{1}{6} z^3\} = e^z + O(z^4).\]
+In summary, the resulting method is
+\begin{itemize}
+    \item At time $t_n$, $k_1 = f(t_n, u_n)$.
+    \item At time $t_n + \frac{h}{2}$, $k_2 = f(t_n + \frac{h}{2}, u_n + \frac{1}{2} h k_1)$.
+    \item At time $t_n + h$, $k_3 = f(t_n + h, u_n - h k_1 + 2h k_2)$.
+\end{itemize}
+Bringing this together, we have that
+\[u_{n+1} = u_n + \frac{1}{6} \{h k_1 + 4 h k_2 + h k_3\}\]
+This is called \textbf{Kutta's Third Order Method}.
+
+This method here is called \textbf{Kutta's Third Order Method}. We want to try to generalize this to higher order. The key idea here is to get to this is to include an extra ``stage" by using $k_2$ to $k_3$. This is called the $3$-Stage Explicit Runge-Kutta method.\\
+
+We introduce a shorthand notation for the two schemes.
+    \[\includegraphics[width=0.6\textwidth]{Figures/lecture10/lec10-2.png}\]
+This is called the \textbf{Butcher Tableau}, inspired by paying attention to the coefficients.
+    \[\includegraphics[width=0.6\textwidth]{Figures/lecture10/lec10-3.png}\]
+
+\begin{question}
+    Here's a little quiz, what is the table
+    \[\includegraphics[width=0.4\textwidth]{Figures/lecture10/lec10-4.png}\]
+    This is Euler's method.
+\end{question}
+
+\begin{example}
+    This is Heun's Method and Crank-Nicolson method.
+    \[\includegraphics[width=0.6\textwidth]{Figures/lecture10/lec10-5.png}\]
+\end{example}
+
+\textbf{Alternative Approach: }Let's try an alternative approach by varying node placement, where we replace $1$ with a $\theta$.
+\[\includegraphics[width=0.6\textwidth]{Figures/lecture10/lec10-6.png}\]
+In this case we have that $h k_1 = h f(t_n, u_n)$ and $h k_2 = h f(t_n + \frac{k}{2}, u_n + \frac{h}{2} k_1)$. We don't know what the final coefficients are, so we might as well call them $b_1, b_2, b_3$ (to be determined).
+\[\]
+
+Now, we have that
+\[v_1 = u_n,  h k_1 = z u_n\]
+\[v_2 = (1 + \frac{z}{2}) u_n, h k_2 = z(1 + \frac{z}{2}) u_n\]
+\[v_3 = (1 + \theta z + \frac{1}{2} \theta z^2) u_n, h k_3 = z(1 + \theta z + \frac{1}{2} \theta z^2) u_n\]
+ Thus, we see that
+ \begin{align*}
+     R(z) u_n &= u_{n+1}\\
+     &= (1 + b_1 z + b_2 z (1 + \frac{1}{2} z) + b_3 z (1 + \theta z + \frac{1}{2} \theta z^2)) u_n\\
+     &= (1 + (b_1 + b_2 + b_3)z + (\frac{1}{2} b_2 + \theta b_3) z^2 + \frac{1}{2} \theta b_3 z^3) u_n
+ \end{align*}
+ We want toc hoose the coefficients so that
+ \[b_1 + b_2 + b_3 = 1, (\frac{1}{2} b_2 + \theta b_3) = \frac{1}{2}, \frac{1}{2} \theta b_3 z^3) = \frac{1}{6}\]
+ Solving these equations quickly as an exercise, we can find that
+ \[b_1 = \frac{1}{3}(2 - \frac{1}{\theta}), b_2 = \frac{1}{3}, b_3 = \frac{1}{3 \theta}\]
+ We still need to choose $\theta$, we want to look at the quadrature rule to make sure it is also cubic. Check the quadrature rule order
+ \[E(g) = \int_0^h g(t) dt - \frac{h}{3} \{(2 - \theta) g(0) + g(\frac{h}{2}) + \frac{1}{\theta} g(\theta h)\}\]
+ It eliminates constants.
+ \[E(1) = h - \frac{h}{3} \{2 - \frac{1}{\theta} + 1 + \frac{1}{\theta}\} = 0 \]
+We also have that
+ \[E(t) =  \frac{h^2}{2} - \frac{h}{3} \{\frac{h}{2} + \frac{\theta h}{\theta}\} = 0\]
+ Finally for quadratics, we have that
+ \[E(t^2) = \frac{h^3}{3} - \frac{h}{3} \{(\frac{h}{2})^2 + \frac{1}{\theta} (\theta h)^2\} = h^2 (\frac{1}{4} - \theta/3)\]
+ Thus, we choose $\theta = 3/4$, so $E(p) = 0$ for all $p \in \mathbb{P}_2$, which gives an error of $O(h^4)$ by Peano's Kernel Theorem. Thus, we have that our table is
+\[\includegraphics[width=0.6\textwidth]{Figures/lecture10/lec10-7.png}\]
+ This is called \textbf{Ralston's 3rd Order Method}.\\
+
+\textbf{Fourth Order Runge Kutta: }
+
+We know that Simpson is locally $O(h^5)$ and so globally $O(h^4)$, so let's start with Simpson. We need the stability polhnomial to be
+\[R(z) = 1 + z + \frac{z^2}{2} + \frac{z^3}{6} + \frac{z^4}{24} = e^{z} + O(z^5)\]
+In other words, we need an extra stage to get a $z^4$ term.\\
+
+This means we want 4 stages, but Simpson's only evaluated on 3 points. How should we choose the $4$-th stage? Why don't we just repeat a stage, say $1/2$ twice? We want thebotoom coefficients to eventually be $1/6, 2/3 - \beta, \beta, 1/6$. Here's the four stages we are thinking about
+\[\includegraphics[width=0.6\textwidth]{Figures/lecture10/lec10-8.png}\]
+Now we again compute that
+\[v_1 = u_n, h k_1 = z u_n\]
+\[v_2 = (1 + \frac{1}{2} z) u_n, h k_2 = z(1 +\frac{1}{2} z) u_n\]
+\[v_3 = [1 + (1/2 - \alpha) z + \alpha z (1 + \frac{1}{2} z)] u_n = (1 + \frac{1}{2} z + \frac{1}{2} \alpha z^2) u_n\]
+\[h k_3 = z (1 + \frac{1}{2} z + \frac{1}{2} \alpha z^2) u_n\]
+\[v_4 = (1 + z + \frac{1}{2} z^2 + \frac{1}{2} \alpha z^3) u_n\]
+\[h k_4 = z (1 + z + \frac{1}{2} z^2 + \frac{1}{2} \alpha z^3) u_n\]
+
+Thus, we have that
+\[R(z) u_n = u_{n+1} = (1 + z + \frac{1}{2} z^2 + (\frac{1}{12} + \frac{1}{12} \alpha \beta) z^3 + \frac{1}{12} \alpha z^4) u_n\]
+Thus we conclude that $\alpha = 1/2$ and $\beta = 1/3$, so our grid is actually
+\[\includegraphics[width=0.5\textwidth]{Figures/lecture10/lec10-9.png}\]
+This is called the ``classic RK4" method (Kutta, 1901), but there are many many more RK4's.\\
+
+\begin{remark}
+Let's now try an ``engineering induction". The above arguments lead to the conjecture.
+\begin{conjecture}
+    An $s$-stage explicit Runge-Kutta method has order $O(h^s)$.
+\end{conjecture}
+Unfortunately, this is false! For a $p$-th oder method, we need $s(p)$ many stages where 
+\[s(p) = \begin{cases}
+    p, p \leq 4\\
+    p + 1, p = 5, 6\\
+    p + 2, p \geq 2
+\end{cases}\]
+This is called the \textbf{Dahlquist Barrier}. When $s$ gets larger and larger, the number of non-linear equations get harder and harder to solve. In practice, people don't go beyond $RK$ 4 or 5, $4$ really is the number we want.     
+\end{remark}
+
+
 \end{document}
