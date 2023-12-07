@@ -1218,7 +1218,7 @@ Putting it together, we summarize this into a theorem.
 
 The story so far ...
 
-\mattie{TODO: fill in later, just review of last lecture}
+\mattie{TODO: The instructor first gave just review of the last lecture.}
 
 We found that an optimal solution exists with
 \[\Gamma_\star(a) = 0; \Gamma_\star(b) = 1\]
@@ -1645,7 +1645,7 @@ Each time, we see that large / higher frequencies on $k$ makes Euler's method un
 
 The conclusion is that Euler's method is fine for certain problems (e.g. $K = 0$) and for $K = 1, 2, 3, 4$, but it becomes unstable when $K^2 h$ is too large.\\
 
-There's a balance between the choice of $\epsilon$ and $K$. Smaller $\epsilon$ makes $K$ better, but it makes the Euler method worse. Large $K$ makes spatial resolution better, but you start hacing problems with the $\epsilon$. \mattie{confirm??} There are different spatial resolutions fighting each other.
+There's a balance between the choice of $\epsilon$ and $K$. Smaller $\epsilon$ makes $K$ better, but it makes the Euler method worse. Large $K$ makes spatial resolution better, but you start hacing problems with the $\epsilon$. There are different spatial resolutions fighting each other.
 
 \newpage
 \section{Lecture 8}
@@ -2345,5 +2345,413 @@ Unfortunately, this is false! For a $p$-th oder method, we need $s(p)$ many stag
 This is called the \textbf{Dahlquist Barrier}. When $s$ gets larger and larger, the number of non-linear equations get harder and harder to solve. In practice, people don't go beyond $RK$ 4 or 5, $4$ really is the number we want.     
 \end{remark}
 
+\newpage
+\section{Lecture 11}
 
+\subsection{Embedded Runge-Kutta Method}
+
+The story so far... Suppose we are solving an ODE and we're at timestep $(t_n, u_n)$ using, say, the forward Euler's method. Then we compute the method as
+\begin{itemize}
+    \item $k_1 = f(t_n, u_n)$
+    \item $u_{n+1} = u_n + h k_1$
+\end{itemize}
+The question is - how do we know how (nmerically) accurate our approximation is?
+
+\begin{question}
+    Is big $O$-notation a reasonable answer to how accurate the estimation is?
+\end{question}
+
+To some people yes, but if you are someone who works in the industry, you want an actual numerical estimate! The notation $O(h^2)$ is almost meaningless if $O(h^2) = h^2 + \frac{1}{\epsilon} h^3 + ... $ where $\epsilon$ is much smaller than $h$. These big $O$-description is an \textbf{a priori estimate} that only describe asymptotic behaviors. What if we want the numerical value of the error?\\
+
+Previously we have seen that we can estimate the error for forward Euler using Richardson Extrapolation (sometimes also called Milne's Device). We want to consider an alternative approach here.\\
+
+If we take the Euler step, then we get $(t_{n+1}, u_{n+1})$ and then the next thing we do is to evaluate $k_1 = f(t_{n+1}, u_{n+1})$, ready for the next Euler. The question is - Can we make use of $f(t_{n+1}, u_{n+1})$ now (ie. at the $n$-th step)? We regard Euler as follows, at each step
+\begin{itemize}
+    \item Compute $k_1 = f(t_n, u_n)$.
+    \item Compute $u_{n+1} = u_n + h f(t_n, u_n)$.
+    \item Compute $k_2 = f(t_{n+1}, u_{n+1})$ (which we can use in the next step for free).
+\end{itemize}
+The question then is - can we use $k_2$ to help estimate the error? This is sometimes called the \textbf{FSAL (First step Same As Last) method} (first used by \textbf{Larry Shampine}, who built a lot of the ODE solvers in \texttt{MATLAB}). Recall that Heun's method tells us
+\begin{itemize}
+    \item $k_1 = f(t_n, u_n)$
+    \item $k_2 = f(t_n + h, u_n + hk) = f(t_{n+1}, u_{n+1})$
+    \item $\hat{u_{n+1}} = u_n + h/2 \{k_1 + k_2\}$
+    \item Then we can compute $u(t_n) - \hat{u}_n$ is 3rd order locally, hence
+    \[u_{n+1} - u(t_{n+1}) = C_{E, n} h^2 \text{ and } \hat{u}_{n+1} - u(t_{n+1}) = C_{H, n} h^3\]
+\end{itemize}
+
+Note that computationally we need to calculate $k_2$ regardless of if we are using Euler or Heun, so we get Heun's method for free from Euler. In this case, let $\epsilon_{n+1} = |\Hat{u}_{n+1} - u_{n+1}|$, then
+\begin{align*}
+    ||u(t_{n+1}) - u_{n+1}| - \epsilon_{n+1}| &\leq |u(t_{n+1}) - u_{n+1} - \Hat{u}_{n+1} + u_{n+1}|\\
+    &= |u(t_{n+1}) - \Hat{u}_{n+1}|\\
+    &= O(h^3)
+\end{align*}
+Thus, $\epsilon_{n+1}$ is equal to $|u(t_{n+1}) - u_{n+1}|$ up to $O(h^3)$. However, note that we only obtained the estimate when the solutions are sufficiently smooth (the estimates are valid when $u \in C^3$).\\
+
+Therefore, we can use $\epsilon_{n+1}$ to decide whether step size needs to be reduced. The up shot is that
+\begin{example}
+    Euler-Heun is an exmaple of an \textbf{Embedded Runge Kutta method}, we examine the Butcher Tableau and see
+    \[
+\renewcommand\arraystretch{1.2}
+\begin{array}
+{c|cccc}
+0 & 0\\
+1 & 1 & 0 & (\text{Euler})\\
+\hline
+& 1/2 & 1/2 & (\text{Heun})
+\end{array}
+\]
+Hence, Euler's method actually sits inside of eun's method, so this is called an ``embedding" and is denoted as RK12.
+\end{example}
+
+This leads to the following Algorithm
+\begin{tcolorbox}[standard jigsaw,opacityback=0]
+\begin{algorithm}[H]
+\caption{RK12\_timestep}
+\KwData{$t_n$, $u_n$, $f$, $h$ and $k_1$}
+\KwResult{The error $\epsilon_{n+1}$, $k_2$, and $u_{n+1}$}
+// 1. $k_1 = f(t_n, u_n)$ (Already known)\;
+2. $u_{n+1} = u_n + h k_1$ (Euler's method)\;
+3. $k_2 = f(t_{n} + h, u_{n+1})$\;
+4. $\Hat{u}_{n+1} = u_n + \frac{1}{2} h(k_1 + k_2)$\; (Heun's method)\;
+5. Let $\epsilon_{n+1} = \frac{1}{2} h |k_1 - k_2|$\;
+6. Return $\epsilon_{n+1}, k_2, u_{n+1}$ (where $k_2$ is the $k_1$ in the next call).
+\end{algorithm}
+\end{tcolorbox}
+
+\begin{question}
+    Are there any higher order embedded methods?
+\end{question}
+
+Let's try for RK23 - ie we need an embedded 2-3 pair.\\
+
+\textbf{First Try: } We start with Heun's method
+    \[
+\renewcommand\arraystretch{1.2}
+\begin{array}
+{c|cccc}
+0 & 0\\
+1 & 1 & 0\\
+\hline
+& 1/2 & 1/2 
+\end{array}
+\]
+
+If we want am embedding, at the next step, we evaluate 
+\[k_3 = f(t_{n+1}, u_{n+1}) = f(t_n + h, u_n + \frac{1}{2} h k_1 + \frac{1}{2} h k_2)\]
+This suggests looking for method of the form
+    \[
+\renewcommand\arraystretch{1.2}
+\begin{array}
+{c|cccc}
+0 & 0\\
+1 & 1 & 0\\
+1 & 1/2 & 1/2 & 0\\
+\hline
+& \hat{b}_1 & \hat{b}_2 & \hat{b}_3 & \text{ New Method $O(h^3)$?}\\
+& 1/2 & 1/2 & 0 & \text{Heun's method $O(h^2)$}
+\end{array}
+\]
+
+We want to choose $\hat{b}_1, \hat{b}_2, \hat{b}_3$ to try to get $O(h^3)$ globally and $O(h^4)$ locally. We know the quadrature conditions from Homework tells us we want
+\begin{itemize}
+    \item $\hat{b}_1 + \hat{b}_2 + \hat{b}_3 = 1$
+    \item $\hat{b}_2 + \hat{b}_3 = \frac{1}{2}$
+\end{itemize}
+In addition to the stability conditions on the function
+\[R(z) = 1 + z(\hat{b}_1 + \hat{b}_2 + \hat{b}_3) + z^2 (\hat{b}_2 + \frac{1}{2}\hat{b}_3) + \frac{1}{2} z^3 \hat{b}_3\]
+Using the earlier conditions, we have that
+\[R(z) = 1 + z  + (\hat{b}_2 + \frac{1}{2} \hat{b}_3 ) z^2 + z^3\]
+We want $\hat{b}_2 + \frac{1}{2} \hat{b}_3 = \frac{1}{2}$. All the conditions now guarantee that
+\[\hat{b}_1 = 1/2, \hat{b}_2 = \frac{1}{2}, \hat{b}_3 = 0.\]
+
+Now, if we plug the conditions back to the table, we have
+    \[
+\renewcommand\arraystretch{1.2}
+\begin{array}
+{c|cccc}
+0 & 0\\
+1 & 1 & 0\\
+1 & 1/2 & 1/2 & 0\\
+\hline
+& 1/2 & 1/2 & 0 & \text{ $O(h^2)$ Failed}\\
+& 1/2 & 1/2 & 0 & \text{Heun's method $O(h^2)$}
+\end{array}
+\]
+But the error $\epsilon_{n+1} = 0$ in this case, and we have the same exact method as before.\\
+
+\textbf{Second Try: } Let's try to start with a different method based on the midpoint rule
+    \[
+\renewcommand\arraystretch{1.2}
+\begin{array}
+{c|cccc}
+0 & 0\\
+1/2 & 1/2 & 0\\
+\hline
+& 0 & 1
+\end{array}
+\]
+This is called the ``modified Euler" and has order $O(h^2)$. In the next step, we evalute
+\[k_3 = f(t_{n+1}, u_{n+1}) = f(t_n + h, u_n + h k_2)\]
+Thus we obtain the table
+    \[
+\renewcommand\arraystretch{1.2}
+\begin{array}
+{c|cccc}
+0 & 0\\
+1/2 & 1/2 & 0\\
+1 & 0 & 1 & 0\\
+\hline
+& \hat{b}_1 & \hat{b}_2 & \hat{b}_3 & \text{ New Method $O(h^3)$?}\\
+& 0 & 1 & 0 & \text{Modified Euler}
+\end{array}
+\]
+We again have the conditions to eliminate $\Pbb_1$ and $\Pbb_2$ to get
+\begin{itemize}
+    \item $\hat{b}_1 + \hat{b}_2 + \hat{b}_3 = 1$
+    \item $1/2 \hat{b}_2 + \hat{b}_3 = \frac{1}{2}$
+    \item $1/4 \hat{b}_2 + \hat{b}_3 = \frac{1}{3}$
+\end{itemize}
+Thus we have that
+\[\hat{b}_1 = 1/6, \hat{b}_2 = 2/3, \hat{b}_3 = 1/6\]
+which is the simpson rule! Finding the stability region gives
+\[R(z) = 1 + (\hat{b}_1 + \hat{b}_2 + \hat{b}_3) z + (1/2 \hat{b}_2 + \hat{b}_3) z^2 + 1/2 \hat{b}_3 z^3\]
+\[=  1 + z + 1/2 z^2 + 1/12 z^3\]
+But we want the coefficient on $z^3$ to be $1/6$! So this also fails\\
+
+\textbf{General Method: } What goes wrong? Well generally we want to consider the following table
+\[\includegraphics[width=0.7\textwidth]{Figures/lecture11/lec11-1.png}\]
+For a 3rd order accuracy, we know from hoework we need
+\begin{itemize}
+    \item 3 quadrature conditions
+    \item 3 stability conditions
+    \item 2 of them are duplicated (from Homework)
+\end{itemize}
+So there's 4 conditions to saitsfy here, but we can only choose 3 coefficients! In general, this means we will FAIL.\\
+
+\textbf{THIRD TRY:} Instead of trying to go from Order 2 to Order 3, why don't we start with an Order 3 method and reduce it down to an Order 2 method. Let's start with Ralston's Third Order method
+    \[
+\renewcommand\arraystretch{1.2}
+\begin{array}
+{c|cccc}
+0 & 0\\
+1/2 & 1/2 & 0\\
+3/4 & 0 & 3/4 & 0\\
+\hline
+& 2/9 & 3/9 & 4/9
+\end{array}
+\]
+
+Now we have that
+\[k_4 = f(t_{n+1}, u_{n+1}) = f(t_n + h, u_n + h/9 (2 k_1 + 3 k_2 + 4 k_3))\]
+We consider the embedding
+    \[
+\renewcommand\arraystretch{1.2}
+\begin{array}
+{c|cccc}
+0 & 0\\
+1/2 & 1/2 & 0\\
+3/4 & 0 & 3/4 & 0\\
+1 & 2/9 & 3/9 & 4/9 & 0\\
+\hline
+& 2/9 & 3/9 & 4/9 & 0\\
+& \hat{b}_1 & \hat{b}_2 & \hat{b}_3 & \hat{b}_4
+\end{array}
+\]
+
+Now we have the conditions that
+\[\includegraphics[width=0.5\textwidth]{Figures/lecture11/lec11-2.png}\]
+
+The question now is - we have some extraneous conditions $\hat{b}_1$ and $\hat{b}_2$, what should we choose them to be. One possibility is that we ask for the 3rd order condition to hold? (we only need 2 more conditions anyways), so we need
+\begin{itemize}
+    \item $1/4 \hat{b}_2 + 9/16 \hat{b}_3 + \hat{b}_4 = 1/3$ (**)
+    \item $3/8 \hat{b}_3 + 1/2 \hat{b}_4 = 1/6$ (**)
+\end{itemize}
+But solving these equations, 
+\[\hat{b}_1 =2/9, \hat{b}_2 =3/9, \hat{b}_3 = 4/9, \hat{b}_4 = 0\]
+So we get back the same method as before, so this is not good...\\
+
+Another possibility is first investigated by \textbf{Bogacki and Shampine} (Applied Mathematics Letter 1989). There's no rigorous argument in the paper, but they provided a very good heuristic for what to do in these circumstances. The idea is to let the quadrature error and the stability error to say the same message.
+\begin{enumerate}
+    \item We should not make either of (**) equal to $0$. They should be equal (roughly) magnitude and as small as feasible.
+    \item The $\hat{b}$-method should ``look like" a second order method even if $h = O(1)$. This means that (B and S) want the higher order coefficients to be of the same magnitude as the lower order coefficients (ex. for $C_2 h^2 + C_3 h^3 + ....$, $C_2 \approx C_3$ rather than reducing $C_2$ to zero)
+    \item They want the stability regions of the two methods to be roughly comparable.
+\end{enumerate}
+
+\begin{question}
+    Is this scientific? There's a difference between theoretical numerical analysis and doing numerical analysis in practice.
+\end{question}
+
+The answer is no. This is not scientific, but it is what you need to do in practice.
+
+\begin{remark}
+    Here's a quote in the original paper: ``most of the [the above considerations] are sufficiently vague that one must explore the space of parameters in a heuristic way". 
+\end{remark}
+
+Based on this discussion, they chose the values
+\[\hat{b}_1 = 7/24, \hat{b}_2 = 1/4, \hat{b}_3 = 1/3, \hat{b}_4 = 1/8\]
+
+Here's the result
+    \[
+\renewcommand\arraystretch{1.2}
+\begin{array}
+{c|ccccc}
+0 & 0\\
+1/2 & 1/2 & 0\\
+3/4 & 0 & 3/4 & 0\\
+1 & 2/9 & 3/9 & 4/9 & 0\\
+\hline
+& 7/24 & 1/4 & 1/3 & 1/8 & \text{2nd Order}\\
+& 2/9 & 3/9 & 4/9 & 0 & \text{3rd Order}\\
+& 5/72 & -6/72 & -8/72 & 9/72 & \epsilon\text{ differnece}
+\end{array}
+\]
+This is called the \textbf{Bogacki-Shampine RK23 Method}, in \texttt{MATLAB}, this is called the \textbf{ODE23}.\\
+
+The concrete algorithm is as follows:
+\begin{tcolorbox}[standard jigsaw,opacityback=0]
+\begin{algorithm}[H]
+\caption{BOGACKI\_SHAMPINE}
+\KwData{$t_n$, $u_n$, $f$, $h$ and $k_1$}
+\KwResult{The error $\epsilon_{n+1}$, $k_4$, and $u_{n+1}$}
+// 1. $k_1 = f(t_n, u_n)$ (Already known)\;
+2. $k_2 = f(t_n + 1/2h, u_n + 1/2 h k_1)$\;
+3. $k_3 = f(t_n + 3/4 h, u_n + 3/4 h k_2)$\;
+4. $u_{n+1} = u_n + h/9 (2 k_1 + 3 k_2 + 4 k_3)$\:
+5. $k_4 = f(t_n + h, u_{n+1})$\;
+6. $\epsilon = h/72 | 5 k_1 - 6 k_2 - 8 k_3 + 9 k_4|$\;
+7. return $\epsilon, k_4, u_{n+1}$
+\end{algorithm}
+\end{tcolorbox}
+
+Some other relevant papers on embedded Runge-Kutta:
+\begin{itemize}
+    \item Dormand and Prince - \textit{A family of embedded Runge-Kutta formulae} - called DOPR145.
+\end{itemize}
+
+\newpage
+\section{Lecture 12 (Final Lecture)}
+
+\subsection{Adaptive Step Size Control}
+
+Suppose we are solving an ODE and we are currently at $n$-th step (ie. we get $(t_j, u_j)_{j = 0}^n$ and we seek $(t_{n+1}, u_{n+1}): u_{n+1} \simeq u(t_{n+1})$. So far we have assumed uniform step size $h$, we know this is suboptimal even if $f(t, u) = g(t)$ is independent of $u$!\\
+
+How would be obtain a non-uniform grid?
+\begin{example}
+    Consider a simple ODE
+    \[\frac{du}{dt} = 2t, t > 0, \text{ with } u(0) = 0.\]
+    Hence $u(t) = t^2$. Consider using Euler's method with a non-uniform grid $\{h_n\}$:
+    \begin{itemize}
+        \item $u_{n+1} = u_{n} + 2 h_n t_n$.
+        \item $t_{n+1} = t_n + h_n$.
+        \item $n = 0, 1, 2, ....$.
+    \end{itemize}
+    with $u_0 = t_0 = 0$. Let's say we want an approximation that is within a tolerance $\epsilon > 0$, ie. $|u(t_n) - u_n| \leq \epsilon$ for all $n$. Hence looking at the very first time step,
+    \begin{itemize}
+        \item $u_1 = u_0 + 2 h_0 = 0$.
+        \item $t_1 = t_0 + h_0 = h_0$
+        \item $h_0$ is to be determined.
+    \end{itemize}
+    The true eprrr in this case is $u(t_1) - u_1 = h_0^2 - 0 \leq \epsilon$. Choose $h_0 = \sqrt{\epsilon}$ to get $u(t_1) - u_1 = \epsilon$. We can try another time step of size $h_1$ (to be determined), in the next step fo approximation we get
+    \begin{itemize}
+        \item $u_2 = u_1 + 2 h_1 = 2 \sqrt{\epsilon} h_1$.
+        \item $t_2 = t_1 + h_1 = \sqrt{\epsilon} + h_1$.
+    \end{itemize}
+    The true error is now $u(t_2) - u_2 = (\sqrt{\epsilon} + h_1)^2 - 2 \sqrt{\epsilon} h_1 = \epsilon + h_1^2$, only $h_1$ that gives error $\leq \epsilon$ is $h_1 = 0$! This is telling us that it's not possible to satisfy the requirement on the global error.... because the error from the previous step is propagated to the current step.
+\end{example}
+
+The problem here is that we cannot do anything about previous errors at the current step. We would nee to back-up and re-state the equation with new (smaller) error.
+
+\begin{question}
+    What can we control at the $n$-th timestep? Let $t_n < t < t_n + h_n$, we see that the only thing we can really control is $h_n$.
+\end{question}
+
+We are given $t_n, u_n$, and the ODE $\frac{du}{dt} = f(t, u)$ with $t_n < t$. All we can do is to solve a modified ODE
+\[\frac{d\Tilde{u}}{dt} = f(t, \Tilde{u}), t_n < t, \quad (*)\]
+subject to $\Tilde{u}(t_n) = u_n$, ie. $\Tilde{u}$ is the solution of the ODE with the numerical approximation as the initial condition $u$ is the solution of the ODE:
+\[\frac{du}{dt} = f(t, u(t)), t_n < t, ``u(t_n)  = u(t_n)".\]
+Of course, we cannot solve $(\star)$ exactly, in general, so we use a RK-method or some other scheme to compute an approximation $\Tilde{u}_{n+1} \simeq \Tilde{u}(t_{n+1})$.\\
+
+The key point is that even if we solve $(*)$ exactly, we will not be able to control $u_{n+1} - u(t_{n+1})$ because we cannot estimate $\Tilde{u}(t_{n+1}) - u(t_{n+1})$. This means we cannot expect to control the global error $u(t_{n+1}) - u_{n+1}$. However, we can expect to control the local error $\Tilde{u}(t_{n+1}) - \Tilde{u}_{n+1}$.
+\[\includegraphics[width=0.6\textwidth]{Figures/lecture12/lec12-1.png}\]
+Observe that $\Tilde{u}_{n+1}$ is the result of applying RK to $(*)$ with the initial condition $u_n$, but this is exactly the same as $u_{n+1}$.\\
+
+We know how to estimate $u_{n+1} - \Tilde{u}_{n+1}$. Why? When we employ an embedded RK method, we are actually comparing $u_{n+1}^{RK4} - \Tilde{u}(t_{n+1})$ with $u_{n+1}^{RK3} - \Tilde{u}(t_{n+1})$.
+\[\includegraphics[width=0.6\textwidth]{Figures/lecture12/lec12-2.png}\]
+Hence, embedded RK methods estimate local errors rather than global errors.\\
+
+In summary, 
+\begin{itemize}
+    \item All we can control is local error.
+    \item We can estimate local error (using Embedded Runge-Kutta methods, for example).
+\end{itemize}
+
+\begin{question}
+    How should we choose $h_n$?
+\end{question}
+
+Here's an idea for a \textbf{pseudo-algorithm}. Suppose we have $(t_j, u_j)_{j = 0}^n$ and we want to take a timestep $h_n$ that controls local error on $(t_n, t_n + h_n)$. If the method we employ has order $p$, then the local error $\sim C_n h_n^{p+1}$. We seek $h_n$ such that $C_n h_n^{p+1} < \epsilon$. The problem is we don't know what $C_n$ is!
+\[\includegraphics[width=0.6\textwidth]{Figures/lecture12/lec12-3.png}\]
+We can make a test (a trial step) to estimate what $C_n$ is.
+\begin{enumerate}
+    \item Take a preliminary step of size $h_{try}$ and compute an estimate $\epsilon_{try}$ of the resulting local error. We seek a map
+    \[RK_{pq} (t_n, u_n, h_{try}) \to \epsilon_{try}.\]
+    An embedded Runge-Kutta method does exactly this!
+    \item We then use the data $\epsilon_{try}, h_{try}$ to figure out an estimate of $C_n$ by assuming that $C_n h^p_{try} \simeq \epsilon_{try}$. We now use this to choose a new step size $h_{next}$ such that
+    \[C_n h^{p+1}_{next} \simeq \epsilon (\text{required tolerance}).\]
+    Solving this gives
+    \[h_{next} = h_{try} (\frac{\epsilon}{\epsilon_{try}})^{1/(p+1)}.\]
+\begin{remark}
+    Note that:
+    \begin{itemize}
+        \item If $\epsilon_{try} < \epsilon$, then $h_{next} > h_{try}$ as expected.
+        \item If $\epsilon_{try} > \epsilon$, then $h_{try} > h_{next}$ as expected.
+    \end{itemize}
+\end{remark}
+    \item We repeat the two steps using $h_{next}$,
+    \[RK_{pq}(t_n, u_n, h_{next}) \to \epsilon_{next}\]
+    and look at $\epsilon_{next}$.
+    \begin{itemize}
+        \item (a) If $\epsilon_{next} < \epsilon$, then ACCEPT. Set $t_{n+1} = t_n + h_{next}$, $u_{n+1} = u_{next}$, $n = n + 1$, $h_{try} = h_{next}$ (which is used for the next time step).
+        \item (b) If $\epsilon_{next} > \epsilon$, then REJECT. Set $h_{try} = h_{next}$ and $\epsilon_{try} = \epsilon_{next}$ and go to Step (2). (We reduce the preliminary step we are taking to make it smaller). 
+    \end{itemize}
+\end{enumerate}
+
+Another question is how to choose $\epsilon$? It depends on waht you're trying to compute.
+\begin{itemize}
+    \item Absolute error control $|u^{p+1}_{n+1} - u^{RK3}_{n+1}| < \epsilon$.
+    \item Relative error control $|u^{RK4}_{n+1} - u^{RK3}_{n+1}| < \epsilon \max |u_{n+1}^{RK4}, u_{n+1}^{RK3}|$.
+\end{itemize}
+Neither is ideal as there are tradeoffs in what errors you are comparing. A decent criterion is to choose
+\[\epsilon = \text{ small fraction } \times \{|u_{n+1}| + h |k_1| + 1.0\}\]
+This is recommended by \textit{Numerical Recipes in \texttt{C++}}.\\
+
+An alternative choice for $h_{next}$ is
+\[h_{next} = \text{SAFETY} \times h_{try} \times (\frac{\epsilon}{\epsilon_{try}})^{1/(p+1)}, \]
+where $\text{SAFETY} = 0.9$. (err on the side of caution). Heuristically, if you want to reduce global error, you would replace $p + 1$ with $p$. Ths is not rigorous but is a heuristic practice.\\
+
+Finally, don't cary $h$ too rapidly - we should set current $h_{next}$ such that
+\[\frac{1}{10} h_n \leq h_{next} \leq 5 h_n.\]
+
+The instructor then begins to do a program demonstration. Here is the first example given:
+\begin{enumerate}
+    \item $f(t, u) = (1 - 2t) u$ and $u(0) = 1$, $u(t) = e^{t - t^2}$. The methods used are $RK12$(Heun-Euler), $RK23$ (Bogacki-Shampine), and $RK45$ (Cash-Karp).
+    \[\includegraphics[width=0.6\textwidth]{Figures/lecture12/lec12-4.png}\]
+\end{enumerate}
+
+This marks the end of the course. Before the class ends, the instructor would like to tell one more stories.
+
+\begin{remark}
+    In the U.K., every five years there's a major grant renewal where you'd present the best papers and best researches you have had to ask for funding. The department that the instructor is in invited one of the major evaluators for the funding to give a talk, and when he did the person kept talking about how finite element methods fail on infinitely thin / infinitely long domains. Then, finally, the instructor decided to ask a question during the talk - ``But how many times have you seen an infinitely thin / infinitely long domain being used in the real world?". It didn't leave too poor of an impression. 
+\end{remark}
+
+Here's one more joke before the class ends.
+\begin{remark}
+    It is \texttt{3:00am} outside, an engineer and a mathematician are trying to find the keys to their car since they lost it in the dark. The engineer saw the mathematician walking around under the street light and asked: ``What are you doing? The keys aren't under the street light." The mathematician responded: ``I know! But the light is the only place where I can navigate."\\
+    
+    The same is very true between the realms of pure analysis and numerical analysis. In the real world out there, there will be many problems that needs the help of numerical analysis but can't be proven in the realm of pure mathematics. Hopefully, this class has shined some lights on these details.
+\end{remark}
+
+% Should be similar to HW 3,4,6,7,8,9
+% possibly a coding component
 \end{document}
